@@ -3,17 +3,19 @@
 library(reshape2)
 library(sparsenet)
 
-load("/Users/Dani/UCD/BILs/leaf_traits/ctall.Rdata")
-load("/Users/Dani/UCD/BILs/bgmT.Rdata")
+load("/Users/Dani/UCD/BILs/leaf_traits/ctall.Rdata") # ** replace this w/ a table of predicted values excluding random effects **
+#load("/Users/Dani/UCD/BILs/bgmT.Rdata")
 
+head(bgmT,10)[c(1047:1050)] # the 1st 4 rows on on the BIL (1049) and FinBIL (1050) columns should be NA
 tail(bgmT,10)[c(1047:1048)]
-dim(bgmT) # 471 -- 5:470
+dim(bgmT) # 471 So, the genotype data is in rows --> 5:470
 rownames(bgmT)[5:470]
 bgmAlt<- bgmT[5:470,]
 #bgmAlt$binN <- paste0("BIN_", bgmAlt$binN)
 head(bgmAlt)
 tail(bgmAlt)
-bgmAlt$geno <- rownames(bgmAlt)
+rownames(bgmAlt)
+bgmAlt$geno <- rownames(bgmAlt) # this is *not* a good idea!
 
 
 # mgeno <- melt(bgmAlt, id.vars="binN")

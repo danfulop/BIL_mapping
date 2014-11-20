@@ -16,7 +16,7 @@ output:
 
 - Use the estimated means for:
   * QTL Mapping
-    * with dlmap and elastic net
+    * with SparseNet, w/ and w/o 2-locus epistasis
 
 - Clustering with pdfCluster (density modes) and other methods as well (e.g. dissimilarity)
 
@@ -46,7 +46,7 @@ comp.rn$FinBIL <- as.factor(comp.rn$FinBIL)
 levels(comp.rn$FinBIL)
 comp.rn$FinBIL<- relevel(comp.rn$FinBIL, "M82")
 #
-all.x <- lmer(all ~ FinBIL + (1|block/row) + (1|col) + (1|plant), comp.rn, REML=T)
+all.x <- lmer(all ~ FinBIL + (1|block) + (1|plant), comp.rn, REML=T)
 all.x  
 fixef(all.x)
 
@@ -93,7 +93,7 @@ head(ctall)
 ## Primary complexity
 
 ```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
-mpri <- lmer(pri ~ FinBIL + (1|block/row) + (1|col) + (1|plant), comp.rn, REML=F)
+mpri <- lmer(pri ~ FinBIL + (1|block) + (1|plant), comp.rn, REML=F)
 ctpri <- as.data.frame(coeftab(mpri))
 
 summary(ctpri)
@@ -132,7 +132,7 @@ ggplot(ctp, aes(y=Estimate, x=geno, ymin=Estimate - Std._Error, ymax=Estimate + 
 
 ```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
 
-mint <- lmer(int ~ FinBIL + (1|block/row) + (1|col) + (1|plant), comp.rn, REML=F)
+mint <- lmer(int ~ FinBIL + (1|block) (1|plant), comp.rn, REML=F)
 ctint <- as.data.frame(coeftab(mint))
 
 summary(ctint)
@@ -171,7 +171,7 @@ ggplot(ctp, aes(y=Estimate, x=geno, ymin=Estimate - Std._Error, ymax=Estimate + 
 
 ```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
 
-msec <- lmer(sec ~ FinBIL + (1|block/row) + (1|col) + (1|plant), comp.rn, REML=F)
+msec <- lmer(sec ~ FinBIL + (1|block) + (1|plant), comp.rn, REML=F)
 ctsec <- as.data.frame(coeftab(msec))
 
 summary(ctsec)
