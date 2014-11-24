@@ -35,7 +35,7 @@ levels(comp.rn$FinBIL)
 comp.rn$FinBIL<- relevel(comp.rn$FinBIL, "M82")
 
 # Function to calculate model-fitted means and generate "swooshPlots" for complexity data (i.e. not pseudo-replicated at the leaflet level)
-fitMean <- function(x, y) {  # Include as input column index of response values, i.e. y
+fitMean <- function(x, y, labV) {  # Include as input column index of response values, i.e. y
   resp <- names(x)[y] # assign the column name of the 'y' index
   formula <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block) + (1|plant)" ) )
   fit <- lmer(formula, data=x, REML=TRUE)
@@ -66,7 +66,7 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
                              labels=c("non-significant", "q.value < 0.05", "q.value < 0.01", "q.value < 0.001", "M82") )
   swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
     geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) + geom_pointrange() + theme_bw(16) + 
-    theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=comp.y.labs[i]) +
+    theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=labV[i]) +
     scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # custom color-blind friendly color palette
   ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, height=15) # use trait column labels to name the preliminary plots
   resultsList <- list(fittedMeans = tab, plot = swooshPlot)
@@ -74,17 +74,15 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
 }
 
 # Initialize lists in which to save the ggplot objects and the data.frames with model-fitted means 
-comp.plot.list <- vector("list", length=4)
-names(comp.plot.list) <- names(comp.rn)[5:8]
-comp.df.list <- vector("list", length=4)
-names(comp.df.list) <- names(comp.rn)[5:8]
-# Vector of Y-axis labels for complexity data
+comp.list <- vector("list", length=4)
+names(comp.list) <- names(comp.rn)[5:8]
+
+# Vector of Y-axis labels for complexity data => use this for function input "labV" or label vector
 comp.y.labs <- c("Leaf complexity, primary (leaflet counts)", "Leaf complexity, intercalary (leaflet counts)",
                  "Leaf complexity, secondary (leaflet counts)", "Leaf complexity, all (leaflet counts)" )
 
-# place these inside the foreach loop
-comp.plot.list[i] <- swooshPlot
-comp.df.list[i] <- tab
+# Iterate through complexity traits w/ a foreach loop
+comp.list <- swooshPlot
 
 # Add list element names before saving
 save(comp.plot.list, file="comp.plot.list.Rdata")
