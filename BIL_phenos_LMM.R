@@ -82,11 +82,8 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
   swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
     geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) +
     geom_pointrange() + theme_bw(16) + theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) +  
-    scale_color_brewer(type="qual", palette=6) + scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # make the lightest colors a bit darker
-  # scale_color_manual(values = c("#de77ae", "#c51b7d", "#5f5f5f", "#4d9221", "#7fbc41") )
-  # scale_color_manual(values = c("#c2a5cf", "#7b3294", "#000000", "#008837", "#a6dba0") )
-  # 30 x 20 inches (WxH) looks great
-  ##  to do w/ plot: Title, x & y axes labels, color palette, plot size
+    scale_color_brewer(type="qual", palette=6) + scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") )
+  # to do w/ plot: Title, x & y axes labels, plot size
   # either qual-6 or div-2 (w/ gray theme)
   # OR make a custom palette with div-2 color, but replace the white with black
   ggsave
