@@ -69,6 +69,8 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
     theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=comp.y.labs[i]) +
     scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # custom color-blind friendly color palette
   ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, height=15) # use trait column labels to name the preliminary plots
+  resultsList <- list(fittedMeans = tab, plot = swooshPlot)
+  return(resultsList)
 }
 
 # Initialize lists in which to save the ggplot objects and the data.frames with model-fitted means 
