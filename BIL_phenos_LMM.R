@@ -3,6 +3,8 @@ library(ggplot2)
 library(coefplot2)
 library(pbkrtest)
 library(fdrtool)
+library(parallel)
+library(foreach)
 
 ## All complexity
 
@@ -45,6 +47,13 @@ FitMeanPseudoRep
 
 # ** Initialize lists in which to save the ggplot objects and the data.frames with model-fitted means **
 
+comp.plot.list <- vector("list", 4)
+comp.df.list <- vector("list", 4)
+
+# Vector of Y-axis labels for complexity data
+comp.y.labs <- c("Leaf complexity, primary (leaflet counts)", "Leaf complexity, intercalary (leaflet counts)",
+                 "Leaf complexity, secondary (leaflet counts)", "Leaf complexity, all (leaflet counts)" )
+
 fitMean <- function(x, y) {  # Include as input column index of response values, i.e. y
   resp <- names(x)[y] # assign the column name of the 'y' index
   formula <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block) + (1|plant)" ) )
@@ -82,13 +91,32 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
   swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
     geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) +
     geom_pointrange() + theme_bw(16) + theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) +  
-    scale_color_brewer(type="qual", palette=6) + scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") )
-  # to do w/ plot: Title, x & y axes labels, plot size
-  # either qual-6 or div-2 (w/ gray theme)
-  # OR make a custom palette with div-2 color, but replace the white with black
-  ggsave
-  
+    scale_color_brewer(type="qual", palette=6) + scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) + 
+    labs(x="Genotype", y=comp.y.labs[i])
+  # to do w/ plot: plot size
+  # ** should I mess w/ testing each random effect term??  ...and only keeping the significant ones
+  ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, width=15) # use trait column labels to name the preliminary plots
 }
+
+# place these inside the foreach loop
+comp.plot.list[i] <- swooshPlot
+comp.df.list[i] <- tab
+
+save(comp.plot.list, file="comp.plot.list.Rdata")
+save(comp.df.list, file="comp.df.list.Rdata")
+
+
+#----
+# form_noPlant <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block)" ) )
+# fit_noPlant <- lmer(form_noPlant, data=x, REML=TRUE)
+# 
+# form_noBlock <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|plant)" ) )
+# fit_noBlock <- lmer(form_noBlock, data=x, REML=TRUE)
+# 
+# anova(fit, fit_noPlant)
+# 
+# anova(fit, fit_noBlock)
+#----
 
 all.x <- lmer(all ~ FinBIL + (1|block) + (1|plant), comp.rn, REML=T)
 all.x  
