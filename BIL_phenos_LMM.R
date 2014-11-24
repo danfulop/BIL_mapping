@@ -71,9 +71,6 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
   tab[2:nrow(tab),c(1,3:6)] <- tab[2:nrow(tab),c(1,3:6)] + tab[1,1] # add the intercept to the BIL's estimates quantile estimates of the genotype coefficients
   tab$lowerStdDev <- tab$Estimate - tab$StdErr # estimate - std err -- calculate lower error bar limit
   tab$upperStdDev <- tab$Estimate + tab$StdErr # estimate + std err -- calculate upper error bar limit
-  # include p-value and plot 8 x 10.5 with p-value asterisks
-  # look into saving a ggplot as an object ~> save it both as object and PDF, that way it can be easily replotted w/o much trouble
-  # save the fits in either a list of singly with an appropriate label => Save as list, and then *just* the estimates in a data frame for clustering
   tab <- tab[with(tab, order(Estimate)), ]
   tab$geno <- factor(tab$geno, levels=tab$geno)
   fdr <- fdrtool(tab$p.value, statistic="pvalue")
@@ -93,8 +90,6 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
     geom_pointrange() + theme_bw(16) + theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) +  
     scale_color_brewer(type="qual", palette=6) + scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) + 
     labs(x="Genotype", y=comp.y.labs[i])
-  # to do w/ plot: plot size
-  # ** should I mess w/ testing each random effect term??  ...and only keeping the significant ones
   ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, width=15) # use trait column labels to name the preliminary plots
 }
 
@@ -102,10 +97,12 @@ fitMean <- function(x, y) {  # Include as input column index of response values,
 comp.plot.list[i] <- swooshPlot
 comp.df.list[i] <- tab
 
+# Add list element names before saving
 save(comp.plot.list, file="comp.plot.list.Rdata")
 save(comp.df.list, file="comp.df.list.Rdata")
 
 
+# ** should I mess w/ testing each random effect term??  ...and only keeping the significant ones
 #----
 # form_noPlant <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block)" ) )
 # fit_noPlant <- lmer(form_noPlant, data=x, REML=TRUE)
