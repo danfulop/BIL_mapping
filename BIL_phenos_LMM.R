@@ -1,6 +1,8 @@
 library(lme4)
 library(ggplot2)
 library(coefplot2)
+library(pbkrtest)
+library(fdrtool)
 
 ## All complexity
 
@@ -30,7 +32,67 @@ comp.rn$genotype <- as.factor(comp.rn$genotype)
 comp.rn$FinBIL <- as.factor(comp.rn$FinBIL)
 levels(comp.rn$FinBIL)
 comp.rn$FinBIL<- relevel(comp.rn$FinBIL, "M82")
-#
+
+# Convert the model-fitted mean estimation below into a function to reuse for all traits (w/ the same expt. design)
+# The same goes for predicted responses excluding random effects, i.e. convert to a function
+#     The prediction function will need 2 variants, i.e. a 2nd one where the model is different (b/c of leaflets, etc) and the pseudo-replicates are averaged
+
+predResp
+
+predRespAvg
+
+FitMeanPseudoRep
+
+# ** Initialize lists in which to save the ggplot objects and the data.frames with model-fitted means **
+
+fitMean <- function(x, y) {  # Include as input column index of response values, i.e. y
+  resp <- names(x)[y] # assign the column name of the 'y' index
+  formula <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block) + (1|plant)" ) )
+  fit <- lmer(formula, data=x, REML=TRUE)
+  degfree <- get_ddf_Lb(fit, fixef(fit)) # get Kenward-Roger approximate degrees of freedom
+  tab <- as.data.frame( coeftab(fit, df=degfree, p.val=TRUE) ) # save fixed effect table
+  rownames(tab)[1] <- "M82" # relabel intercept as M82
+  tab$geno <- rownames(tab) # copy BIL IDs
+  tab$geno[2:nrow(tab)] <- substr(tab$geno[2:nrow(tab)],7,13)
+  names(tab)[2] <- 'StdErr'
+  names(tab)[7] <- 'p.value'
+  names(tab)[3] <- 'lowerCI'
+  names(tab)[6] <- 'upperCI'
+  tab$p.value[tab$geno=="M82"] <- 1 # assign pval=1 for M82, b/c it's the intercept and thus the reference value for others' p-values
+  tab[2:nrow(tab),c(1,3:6)] <- tab[2:nrow(tab),c(1,3:6)] + tab[1,1] # add the intercept to the BIL's estimates quantile estimates of the genotype coefficients
+  tab$lowerStdDev <- tab$Estimate - tab$StdErr # estimate - std err -- calculate lower error bar limit
+  tab$upperStdDev <- tab$Estimate + tab$StdErr # estimate + std err -- calculate upper error bar limit
+  # include p-value and plot 8 x 10.5 with p-value asterisks
+  # look into saving a ggplot as an object ~> save it both as object and PDF, that way it can be easily replotted w/o much trouble
+  # save the fits in either a list of singly with an appropriate label => Save as list, and then *just* the estimates in a data frame for clustering
+  tab <- tab[with(tab, order(Estimate)), ]
+  tab$geno <- factor(tab$geno, levels=tab$geno)
+  fdr <- fdrtool(tab$p.value, statistic="pvalue")
+  tab$q.value <- fdr$qval
+  tab$Significance[tab$q.value > 0.05] <- "non-significant"
+  tab$Significance[tab$q.value < 0.05 & tab$q.value > 0.01] <- "q.value_<_0.05"
+  tab$Significance[tab$q.value < 0.01 & tab$q.value > 0.001] <- "q.value_<_0.01"
+  tab$Significance[tab$q.value < 0.001] <- "q.value_<_0.001"
+  tab$Significance[tab$geno=="M82"] <- "M82"
+  tab$Significance <- factor(tab$Significance, 
+                             levels=c("non-significant", "q.value_<_0.05", "q.value_<_0.01",
+                                      "q.value_<_0.001", "M82"),
+                             labels=c("non-significant", "q.value < 0.05", "q.value < 0.01",
+                                     "q.value < 0.001", "M82") )
+  swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
+    geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) +
+    geom_pointrange() + theme_bw(16) + theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) +  
+    scale_color_brewer(type="qual", palette=6) + scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # make the lightest colors a bit darker
+  # scale_color_manual(values = c("#de77ae", "#c51b7d", "#5f5f5f", "#4d9221", "#7fbc41") )
+  # scale_color_manual(values = c("#c2a5cf", "#7b3294", "#000000", "#008837", "#a6dba0") )
+  # 30 x 20 inches (WxH) looks great
+  ##  to do w/ plot: Title, x & y axes labels, color palette, plot size
+  # either qual-6 or div-2 (w/ gray theme)
+  # OR make a custom palette with div-2 color, but replace the white with black
+  ggsave
+  
+}
+
 all.x <- lmer(all ~ FinBIL + (1|block) + (1|plant), comp.rn, REML=T)
 all.x  
 fixef(all.x)
@@ -45,25 +107,26 @@ ct$geno <- rownames(ct)
 ct$geno[2:nrow(ct)] <- substr(ct$geno[2:nrow(ct)],7,13)
 ct$geno
 head(ct)
-# convert from coefficient table to "prediction" table
+# convert from coefficient table to model-fitted mean table
 
 ct[2:nrow(ct),1] <- ct[2:nrow(ct),1] + ct[1,1] # i.e. add the intercept estimate to the genotype coefficients' estimates 
 ct[2:nrow(ct),3:6] <- ct[2:nrow(ct),3:6] + ct[1,1] # ...and also add the intercept to the quantile estimates of the genotype coefficients
 head(ct)
-ct$estPse <- ct$Estimate + ct[,2] # estimate + std err -- calculate upper error bar limit
+# rename these to more readable names, such as upperStdDev and lowerStdDev
 ct$estMse<- ct$Estimate - ct[,2] # estimate - std err -- calculate lower error bar limit
+ct$estPse <- ct$Estimate + ct[,2] # estimate + std err -- calculate upper error bar limit
 head(ct)
 #ct[,1:6] <- as.numeric(ct[,1:6])
 class(ct$estPse)
 class(ct)
-names(ct)[2] <- 'Std._Error'
+names(ct)[2] <- 'stderr'
 summary(ct)
 ct <- ct[with(ct, order(Estimate)), ]
 head(ct)
 ctp <- ct
 ctp$geno <- factor(ctp$geno, levels=ctp$geno)
 # Plot the whole distribution of predicted genotype effects on "all" complexity counts
-ggplot(ctp, aes(y=Estimate, x=geno, ymin=Estimate - Std._Error, ymax=Estimate + Std._Error)) + geom_pointrange() + theme_bw() +
+ggplot(ctp, aes(y=Estimate, x=geno, ymin=Estimate - stderr, ymax=Estimate + stderr)) + geom_pointrange() + theme_bw() +
   theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1))
 
 head(ct)
