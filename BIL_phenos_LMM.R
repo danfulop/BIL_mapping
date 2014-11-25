@@ -36,9 +36,9 @@ levels(comp.rn$FinBIL)
 comp.rn$FinBIL<- relevel(comp.rn$FinBIL, "M82")
 
 # Function to calculate model-fitted means and generate "swooshPlots" for complexity data (i.e. not pseudo-replicated at the leaflet level)
-fitMean <- function(x, y, labV, i) {  # Include as input column index of response values, i.e. y
+fitMean <- function(x, y, labV, i, randform) {  # Include as input column index of response values, i.e. y
   resp <- names(x)[y] # assign the column name of the 'y' index
-  formula <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block) + (1|plant)" ) )
+  formula <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block) + ", get("randform") ) )
   fit <- lmer(formula, data=x, REML=TRUE)
   degfree <- get_ddf_Lb(fit, fixef(fit)) # get Kenward-Roger approximate degrees of freedom
   tab <- as.data.frame( coeftab(fit, df=degfree, p.val=TRUE) ) # save fixed effect table
@@ -79,23 +79,61 @@ comp.y.labs <- c("Leaf complexity, primary (leaflet counts)", "Leaf complexity, 
 # Iterate through complexity traits w/ a foreach loop
 registerDoParallel(cores=4) # register parallel backend
 mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
-#nofun <- function(a,b) NULL # , .combine='nofun'
+randform <- "(1|plant)" # specify plant-related random effect term
 comp.list <- foreach(i=1:4, .options.multicore=mcoptions) %dopar% { # run loop
   y = i + 4
-  fitMean(comp.rn, y, comp.y.labs, i)
+  fitMean(comp.rn, y, comp.y.labs, i, randform)
 }
-names(comp.list) <- names(comp.rn)[5:8]
+names(comp.list) <- names(comp.rn)[5:8] # name the list elements by their original trait names
 save(comp.list, file="comp.list.Rdata") # Save results list
+#----
 
-# Convert the model-fitted mean estimation below into a function to reuse for all traits (w/ the same expt. design)
-# The same goes for predicted responses excluding random effects, i.e. convert to a function
-#     The prediction function will need 2 variants, i.e. a 2nd one where the model is different (b/c of leaflets, etc) and the pseudo-replicates are averaged
+# Function to calculate model-fitted means and generate "swooshPlots" for data pseudo-replicated at the leaflet level
+FitMeanPseudoRep <- function(x, y, labV, i) {  # Include as input column index of response values, i.e. y
+  resp <- names(x)[y] # assign the column name of the 'y' index
+  formula <- as.formula( paste0( get("resp"), " ~ FinBIL + (1|block) + (1|plant/leaflets/leaflet.type)" ) )
+  fit <- lmer(formula, data=x, REML=TRUE)
+  degfree <- get_ddf_Lb(fit, fixef(fit)) # get Kenward-Roger approximate degrees of freedom
+  tab <- as.data.frame( coeftab(fit, df=degfree, p.val=TRUE) ) # save fixed effect table
+  rownames(tab)[1] <- "M82" # relabel intercept as M82
+  tab$geno <- rownames(tab) # copy BIL IDs
+  tab$geno[2:nrow(tab)] <- substr(tab$geno[2:nrow(tab)],7,13) # Trim the coefficient names to get proper genotype/line names
+  names(tab)[2] <- 'StdErr'; names(tab)[7] <- 'p.value'; names(tab)[3] <- 'lowerCI'; names(tab)[6] <- 'upperCI'
+  tab$p.value[tab$geno=="M82"] <- 1 # assign pval=1 for M82, b/c it's the intercept and thus the reference value for others' p-values
+  tab[2:nrow(tab),c(1,3:6)] <- tab[2:nrow(tab),c(1,3:6)] + tab[1,1] # add the intercept to the BIL's estimates quantile estimates of the genotype coefficients
+  tab$lowerStdDev <- tab$Estimate - tab$StdErr # estimate - std err -- calculate lower error bar limit
+  tab$upperStdDev <- tab$Estimate + tab$StdErr # estimate + std err -- calculate upper error bar limit
+  tab <- tab[with(tab, order(Estimate)), ]
+  tab$geno <- factor(tab$geno, levels=tab$geno)
+  fdr <- fdrtool(tab$p.value, statistic="pvalue", plot=FALSE)
+  tab$q.value <- fdr$qval
+  tab$Significance[tab$q.value > 0.05] <- "non-significant"
+  tab$Significance[tab$q.value < 0.05 & tab$q.value > 0.01] <- "q.value_<_0.05"
+  tab$Significance[tab$q.value < 0.01 & tab$q.value > 0.001] <- "q.value_<_0.01"
+  tab$Significance[tab$q.value < 0.001] <- "q.value_<_0.001"
+  tab$Significance[tab$geno=="M82"] <- "M82"
+  tab$Significance <- factor(tab$Significance, levels=c("non-significant", "q.value_<_0.05", "q.value_<_0.01", "q.value_<_0.001", "M82"),
+                             labels=c("non-significant", "q.value < 0.05", "q.value < 0.01", "q.value < 0.001", "M82") )
+  swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
+    geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) + geom_pointrange() + theme_bw(16) + 
+    theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=labV[i]) +
+    scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # custom color-blind friendly color palette
+  ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, height=15) # use trait column labels to name the preliminary plots
+  resultsList <- list(fittedMeans = tab, plot = swooshPlot)
+  resultsList
+}
 
+
+#----
 predResp
 
 predRespAvg
 
-FitMeanPseudoRep
+
+
+# Convert the model-fitted mean estimation below into a function to reuse for all traits (w/ the same expt. design)
+# The same goes for predicted responses excluding random effects, i.e. convert to a function
+#     The prediction function will need 2 variants, i.e. a 2nd one where the model is different (b/c of leaflets, etc) and the pseudo-replicates are averaged
 
 
 # ** should I mess w/ testing each random effect term??  ...and only keeping the significant ones
