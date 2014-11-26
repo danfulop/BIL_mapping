@@ -41,7 +41,6 @@ fitMean <- function(x, y, labV, i, randform) {  # Include as input column index 
   fit <- lmer(formula, data=x, REML=TRUE)
   tab <- as.data.frame(coeftab(fit)) # save fixed effect table
   tab$p.z <- 2 * pnorm(abs(data.frame(coef(summary(fit)))$t.value), lower.tail=FALSE) # normal approximation to p-values, which is very valid because the number of groups is very large i.e. >> ~40-50
-  pvals <- 2 * pt(abs(data.frame(coef(summary(fit)))$t.value), df=degfree, lower.tail=FALSE)
   rownames(tab)[1] <- "M82" # relabel intercept as M82
   tab$geno <- rownames(tab) # copy BIL IDs
   tab$geno[2:nrow(tab)] <- substr(tab$geno[2:nrow(tab)],7,13) # Trim the coefficient names to get proper genotype/line names
@@ -50,9 +49,9 @@ fitMean <- function(x, y, labV, i, randform) {  # Include as input column index 
   tab[2:nrow(tab),c(1,3:6)] <- tab[2:nrow(tab),c(1,3:6)] + tab[1,1] # add the intercept to the BIL's estimates quantile estimates of the genotype coefficients
   tab$lowerStdDev <- tab$Estimate - tab$StdErr # estimate - std err -- calculate lower error bar limit
   tab$upperStdDev <- tab$Estimate + tab$StdErr # estimate + std err -- calculate upper error bar limit
-  tab <- tab[with(tab, order(Estimate)), ]
+  tab <- tab[with(tab, order(Estimate)), ] # reorder estimates table by the estimates' values
   tab$geno <- factor(tab$geno, levels=tab$geno)
-  fdr <- fdrtool(tab$p.value, statistic="pvalue", plot=TRUE)
+  fdr <- fdrtool(tab$p.value, statistic="pvalue", plot=FALSE) # adaptive FDR multiple testing correction
   tab$q.value <- fdr$qval
   tab$Significance[tab$q.value > 0.05] <- "non-significant"
   tab$Significance[tab$q.value < 0.05 & tab$q.value > 0.01] <- "q.value_<_0.05"
@@ -60,7 +59,7 @@ fitMean <- function(x, y, labV, i, randform) {  # Include as input column index 
   tab$Significance[tab$q.value < 0.001] <- "q.value_<_0.001"
   tab$Significance[tab$geno=="M82"] <- "M82"
   tab$Significance <- factor(tab$Significance, levels=c("non-significant", "q.value_<_0.05", "q.value_<_0.01", "q.value_<_0.001", "M82"),
-                             labels=c("non-significant", "q.value < 0.05", "q.value < 0.01", "q.value < 0.001", "M82") )
+                             labels=c("non-significant", "q-value < 0.05", "q-value < 0.01", "q-value < 0.001", "M82") )
   swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
     geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) + geom_pointrange() + theme_bw(16) + 
     theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=labV[i]) +
@@ -101,7 +100,7 @@ circ.y.labs <- c("Area (µm^2)", "Circularity", "Aspect Ratio", "Roundness", "So
 circ.list <- vector("list", length=5)
 registerDoParallel(cores=4) # register parallel backend
 mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
-foreach(i=1:5, .options.multicore=mcoptions, .combine='nofun', .verbose=TRUE) %dopar% { # run loop
+foreach(i=1:5, .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
   y = i + 4
   circ.list[i] <- fitMean(x=circ, y=y, labV=circ.y.labs, i=i, randform="(1 | plant / leaflet.type)" )
 }
