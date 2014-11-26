@@ -69,6 +69,7 @@ fitMean <- function(x, y, labV, i, randform) {  # Include as input column index 
   resultsList
 }
 
+#---- Complexity data
 # Initialize lists in which to save the ggplot objects and the data.frames with model-fitted means 
 comp.list <- vector("list", length=4)
 # Vector of Y-axis labels for complexity data => use this for function input "labV" or label vector
@@ -86,11 +87,12 @@ foreach(i=1:4, .options.multicore=mcoptions, .combine='nofun') %dopar% { # run l
 names(comp.list) <- names(comp.rn)[5:8] # name the list elements by their original trait names
 save(comp.list, file="comp.list.Rdata") # Save results list
 
-#----
+#---- Labels for genotype and field info.
 # subset comp.rn and run unique() to make a table with just the genotype and field spatial info. to merge onto the other datasets
 labels <- comp.rn[c(2,9,1,10)]
 labels <- unique(labels)
-#----
+
+#---- Circularity and related data from ImageJ
 circ <- read.delim("BIL.circAR.all.2011.txt")
 circ <- merge(circ, labels, by="plant")
 circ <- droplevels(circ)
@@ -107,6 +109,7 @@ foreach(i=1:5, .options.multicore=mcoptions, .combine='nofun') %dopar% { # run l
 names(circ.list) <- names(circ)[5:9] # name the list elements by their original trait names
 save(circ.list, file="circ.list.Rdata") # Save results list
 
+#---- 
 
 #----
 predResp
