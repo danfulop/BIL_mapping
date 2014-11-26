@@ -109,7 +109,42 @@ foreach(i=1:5, .options.multicore=mcoptions, .combine='nofun') %dopar% { # run l
 names(circ.list) <- names(circ)[5:9] # name the list elements by their original trait names
 save(circ.list, file="circ.list.Rdata") # Save results list
 
-#---- 
+#---- Symmetric PCA data from Elliptical Fourier shape analysis
+sym <- read.delim("BIL_Spcascores.txt")
+sym <- merge(sym, labels, by="plant")
+sym <- droplevels(sym)
+names(sym)[4] <- "leaflet.type"
+sym.y.labs <- names(sym)[6:14]
+# run loop
+sym.list <- vector("list", length=9)
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+foreach(i=1:9, .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
+  y = i + 5
+  sym.list[i] <- fitMean(x=sym, y=y, labV=sym.y.labs, i=i, randform="(1 | plant / leaflet.type)" )
+}
+names(sym.list) <- names(sym)[6:14] # name the list elements by their original trait names
+save(sym.list, file="sym.list.Rdata") # Save results list
+
+#---- Asymmetric PCA data from Elliptical Fourier shape analysis
+asym <- read.delim("BIL_ASpcascores.txt")
+asym <- merge(asym, labels, by="plant")
+asym <- droplevels(asym)
+names(asym)[4] <- "leaflet.type"
+asym <- asym[asym$leaflet.type != "t",] # remove terminal leaflets, because they shouldn't be included in asymmetric shape analysis
+asym <- droplevels(asym) # drop levels again to remove terminal leaflet type level
+asym[6:12] <- abs(asym[6:12]) # take the absolute value of the PCs so that the asymmetry traits are enantiomer-independent (i.e. left and right lateral leaflets are treated equally)
+asym.y.labs <- names(asym)[6:12]
+# run loop
+asym.list <- vector("list", length=7)
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+foreach(i=1:7, .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
+  y = i + 5
+  asym.list[i] <- fitMean(x=asym, y=y, labV=asym.y.labs, i=i, randform="(1 | plant)" )
+}
+names(asym.list) <- names(asym)[6:12] # name the list elements by their original trait names
+save(asym.list, file="asym.list.Rdata") # Save results list
 
 #----
 predResp
