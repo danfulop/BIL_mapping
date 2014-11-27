@@ -177,7 +177,6 @@ save(comp.pred, file="comp.pred.Rdata") # Save prediction data.frames' list
 #---- Circ. data
 circ.pred <- vector("list", length=5)
 registerDoParallel(cores=4) # register parallel backend
-mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
 circ.pred <- foreach(i=1:5, .options.multicore=mcoptions) %dopar% { # run loop
   y = i + 4
   circ.pred[i] <- predResp(x=comp.rn, y=y, randform="(1 | plant / leaflet.type)" )
@@ -188,7 +187,6 @@ save(circ.pred, file="circ.pred.Rdata") # Save prediction data.frames' list
 #---- Symmetric EFD-PCs
 sym.pred <- vector("list", length=9)
 registerDoParallel(cores=4) # register parallel backend
-mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
 sym.pred <- foreach(i=1:9, .options.multicore=mcoptions) %dopar% { # run loop
   y = i + 5
   sym.pred[i] <- predResp(x=comp.rn, y=y, randform="(1 | plant / leaflet.type)" )
@@ -199,7 +197,6 @@ save(sym.pred, file="sym.pred.Rdata") # Save prediction data.frames' list
 #---- Asymmetric EFD-PCs
 asym.pred <- vector("list", length=7)
 registerDoParallel(cores=4) # register parallel backend
-mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
 asym.pred <- foreach(i=1:7, .options.multicore=mcoptions) %dopar% { # run loop
   y = i + 5
   asym.pred[i] <- predResp(x=comp.rn, y=y, randform="(1 | plant)" )
