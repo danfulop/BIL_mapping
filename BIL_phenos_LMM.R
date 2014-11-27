@@ -175,7 +175,7 @@ names(comp.pred) <- names(comp.rn)[5:8] # name the list elements by their origin
 save(comp.pred, file="comp.pred.Rdata") # Save prediction data.frames' list
 
 #---- Circ. data
-circ.pred <- vector("pred", length=5)
+circ.pred <- vector("list", length=5)
 registerDoParallel(cores=4) # register parallel backend
 mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
 circ.pred <- foreach(i=1:5, .options.multicore=mcoptions) %dopar% { # run loop
@@ -186,7 +186,7 @@ names(circ.pred) <- names(circ)[5:9] # name the pred elements by their original 
 save(circ.pred, file="circ.pred.Rdata") # Save prediction data.frames' list
 
 #---- Symmetric EFD-PCs
-sym.pred <- vector("pred", length=9)
+sym.pred <- vector("list", length=9)
 registerDoParallel(cores=4) # register parallel backend
 mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
 sym.pred <- foreach(i=1:9, .options.multicore=mcoptions) %dopar% { # run loop
@@ -197,7 +197,7 @@ names(sym.pred) <- names(sym)[6:14] # name the pred elements by their original t
 save(sym.pred, file="sym.pred.Rdata") # Save prediction data.frames' list
 
 #---- Asymmetric EFD-PCs
-asym.pred <- vector("pred", length=7)
+asym.pred <- vector("list", length=7)
 registerDoParallel(cores=4) # register parallel backend
 mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
 asym.pred <- foreach(i=1:7, .options.multicore=mcoptions) %dopar% { # run loop
