@@ -33,6 +33,7 @@ comp.rn$genotype <- as.factor(comp.rn$genotype)
 comp.rn$FinBIL <- as.factor(comp.rn$FinBIL)
 levels(comp.rn$FinBIL)
 comp.rn$FinBIL<- relevel(comp.rn$FinBIL, "M82")
+comp.rn <- droplevels(comp.rn)
 
 # Function to calculate model-fitted means and generate "swooshPlots"
 fitMean <- function(x, y, labV, i, randform) {  # Include as input column index of response values, i.e. y
@@ -147,44 +148,62 @@ save(asym.list, file="asym.list.Rdata") # Save results list
 
 #---- Calculate predicted response value excluding random effects to use as data for SparseNet 
 
-# The prediction function may need 2 variants, i.e. a 2nd one where the model is different (b/c of leaflets, etc) and the pseudo-replicates are averaged
+#---- Prediction function:
 predResp <- function(x, y, randform) {  # Include as input column index of response values, i.e. y
   resp <- names(x)[y] # assign the column name of the 'y' index
   formula <- as.formula( paste0( get("resp"), " ~ (1|block) + ", get("randform") ) )
   fit <- lmer(formula, data=x, REML=TRUE)
   newdata <- with(x, expand.grid(plant=unique(plant)))
   pred <- predict(fit, newdata, re.form=~(1|plant), type="response", allow.new.levels=TRUE)
-  
-  tab <- as.data.frame(coeftab(fit)) # save fixed effect table
-  tab$p.z <- 2 * pnorm(abs(data.frame(coef(summary(fit)))$t.value), lower.tail=FALSE) # normal approximation to p-values, which is very valid because the number of groups is very large i.e. >> ~40-50
-  rownames(tab)[1] <- "M82" # relabel intercept as M82
-  tab$geno <- rownames(tab) # copy BIL IDs
-  tab$geno[2:nrow(tab)] <- substr(tab$geno[2:nrow(tab)],7,13) # Trim the coefficient names to get proper genotype/line names
-  names(tab)[2] <- 'StdErr'; names(tab)[7] <- 'p.value'; names(tab)[3] <- 'lowerCI'; names(tab)[6] <- 'upperCI' # rename pertinent columns
-  tab$p.value[tab$geno=="M82"] <- 1 # assign pval=1 for M82, b/c it's the intercept and thus the reference value for others' p-values
-  tab[2:nrow(tab),c(1,3:6)] <- tab[2:nrow(tab),c(1,3:6)] + tab[1,1] # add the intercept to the BIL's estimates quantile estimates of the genotype coefficients
-  tab$lowerStdDev <- tab$Estimate - tab$StdErr # estimate - std err -- calculate lower error bar limit
-  tab$upperStdDev <- tab$Estimate + tab$StdErr # estimate + std err -- calculate upper error bar limit
-  tab <- tab[with(tab, order(Estimate)), ] # reorder estimates table by the estimates' values
-  tab$geno <- factor(tab$geno, levels=tab$geno)
-  fdr <- fdrtool(tab$p.value, statistic="pvalue", plot=FALSE) # adaptive FDR multiple testing correction
-  tab$q.value <- fdr$qval
-  tab$Significance[tab$q.value > 0.05] <- "non-significant"
-  tab$Significance[tab$q.value < 0.05 & tab$q.value > 0.01] <- "q.value_<_0.05"
-  tab$Significance[tab$q.value < 0.01 & tab$q.value > 0.001] <- "q.value_<_0.01"
-  tab$Significance[tab$q.value < 0.001] <- "q.value_<_0.001"
-  tab$Significance[tab$geno=="M82"] <- "M82"
-  tab$Significance <- factor(tab$Significance, levels=c("non-significant", "q.value_<_0.05", "q.value_<_0.01", "q.value_<_0.001", "M82"),
-                             labels=c("non-significant", "q-value < 0.05", "q-value < 0.01", "q-value < 0.001", "M82") )
-  swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
-    geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) + geom_pointrange() + theme_bw(16) + 
-    theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=labV[i]) +
-    scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # custom color-blind friendly color palette
-  ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, height=15) # use trait column labels to name the preliminary plots
-  resultsList <- list(fittedMeans = tab, plot = swooshPlot)
-  resultsList
+  predDat <- as.data.frame(cbind(plant=newdata, prediction=pred)) # join the plant labels and predicted responses in a data frame
+  labs <- x[c('genotype', 'FinBIL', 'plant')] # subset data frame to only have genotype info. and plant ID
+  labs <- unique(labs) # keep only one row per plant
+  predDat <- merge(labs, predDat, by="plant")
+  predDat
 }
 
+#---- Complexity data
+comp.pred <- vector("list", length=4)
+# Iterate through complexity traits w/ a foreach loop
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+comp.pred <- foreach(i=1:4, .options.multicore=mcoptions) %dopar% { # run loop
+  y = i + 4
+  comp.pred[i] <- predResp(x=comp.rn, y=y, randform="(1|plant)" )
+}
+names(comp.pred) <- names(comp.rn)[5:8] # name the list elements by their original trait names
+save(comp.pred, file="comp.pred.Rdata") # Save prediction data.frames' list
 
+#---- Circ. data
+circ.pred <- vector("pred", length=5)
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
+circ.pred <- foreach(i=1:5, .options.multicore=mcoptions) %dopar% { # run loop
+  y = i + 4
+  circ.pred[i] <- predResp(x=comp.rn, y=y, randform="(1 | plant / leaflet.type)" )
+}
+names(circ.pred) <- names(circ)[5:9] # name the pred elements by their original trait names
+save(circ.pred, file="circ.pred.Rdata") # Save prediction data.frames' list
 
+#---- Symmetric EFD-PCs
+sym.pred <- vector("pred", length=9)
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
+sym.pred <- foreach(i=1:9, .options.multicore=mcoptions) %dopar% { # run loop
+  y = i + 5
+  sym.pred[i] <- predResp(x=comp.rn, y=y, randform="(1 | plant / leaflet.type)" )
+}
+names(sym.pred) <- names(sym)[6:14] # name the pred elements by their original trait names
+save(sym.pred, file="sym.pred.Rdata") # Save prediction data.frames' list
+
+#---- Asymmetric EFD-PCs
+asym.pred <- vector("pred", length=7)
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- pred(preschedule=TRUE, set.seed=FALSE) # multi-core options
+asym.pred <- foreach(i=1:7, .options.multicore=mcoptions) %dopar% { # run loop
+  y = i + 5
+  asym.pred[i] <- predResp(x=comp.rn, y=y, randform="(1 | plant)" )
+}
+names(asym.pred) <- names(asym)[6:12] # name the pred elements by their original trait names
+save(asym.pred, file="asym.pred.Rdata") # Save prediction data.frames' list
 
