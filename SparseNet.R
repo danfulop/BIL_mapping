@@ -4,7 +4,7 @@ library(reshape2)
 library(sparsenet)
 
 load("/Users/Dani/UCD/BILs/leaf_traits/ctall.Rdata") # ** replace this w/ a table of predicted values excluding random effects **
-#load("/Users/Dani/UCD/BILs/bgmT.Rdata")
+load("/Users/Dani/UCD/BILs/bgmT.Rdata")
 
 head(bgmT,10)[c(1047:1050)] # the 1st 4 rows on on the BIL (1049) and FinBIL (1050) columns should be NA
 tail(bgmT,10)[c(1047:1048)]
@@ -36,14 +36,6 @@ acd <- droplevels(acd)
 head(acd)[1:15]
 summary(acd)
 levels(acd[3])
-
-# recode <- function(x) {
-#   if (x == "HET") {
-#     x <- "SHET"
-#   } else {
-#     next
-#   }
-# }
 
 
 recode <- function(x) {
