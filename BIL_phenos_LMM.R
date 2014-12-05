@@ -1,5 +1,6 @@
 library(lme4)
 library(ggplot2)
+library(plyr)
 library(coefplot2)
 library(fdrtool)
 library(parallel)
@@ -159,6 +160,15 @@ predResp <- function(x, y, randform) {  # Include as input column index of respo
   labs <- x[c('genotype', 'FinBIL', 'plant')] # subset data frame to only have genotype info. and plant ID
   labs <- unique(labs) # keep only one row per plant
   predDat <- merge(labs, predDat, by="plant")
+  fit.df <- fit@frame # get the LMM-object's response and factor data frame
+  fit.df$resid <- residuals(fit, type="response", scaled=FALSE) # calculate residuals
+  fit.df <- fit.df[3:4]  # subset to only keep plant ID and residuals
+  mean.resid <- ddply(fit.df, .(plant), function(x) {  # calculate mean residuals
+    mean.resid <- mean(x$resid)
+    data.frame(mean.resid=mean.resid)
+  })
+  predDat <- merge(predDat, mean.resid)  # merge mean residuals onto predictions
+  predDat$predPlusResid <- predDat$prediction + predDat$mean.resid
   predDat
 }
 
@@ -203,4 +213,3 @@ asym.pred <- foreach(i=1:7, .options.multicore=mcoptions) %dopar% { # run loop
 }
 names(asym.pred) <- names(asym)[6:12] # name the pred elements by their original trait names
 save(asym.pred, file="asym.pred.Rdata") # Save prediction data.frames' list
-
