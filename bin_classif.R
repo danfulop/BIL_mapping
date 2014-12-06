@@ -109,4 +109,7 @@ summary(bgmT)
 tail(bgmT)
 head(bgmT)
 dim(bgmT)
+# Clean up some tidbits
+bgmT[1:4,1049:1050] <- NA # the 1st 4 rows on on the BIL (1049) and FinBIL (1050) columns should be NA
+bgmT <- bgmT[1:470,] # the last row, i.e. 471 should be removed because it's redundant w/ the BIN-# columns, which make up almost the whole data frame
 save(bgmT, file="/Users/Dani/UCD/BILs/bgmT.Rdata")
