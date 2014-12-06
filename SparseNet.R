@@ -3,40 +3,40 @@
 library(reshape2)
 library(sparsenet)
 
-load("/Users/Dani/UCD/BILs/leaf_traits/ctall.Rdata") # ** replace this w/ a table of predicted values excluding random effects **
+setwd("/Users/Dani/UCD/BILs/leaf_traits/")
+#load("/Users/Dani/UCD/BILs/leaf_traits/ctall.Rdata") # ** replace this w/ a table of predicted values excluding random effects **
 load("/Users/Dani/UCD/BILs/bgmT.Rdata")
-
-head(bgmT,10)[c(1047:1050)] # the 1st 4 rows on on the BIL (1049) and FinBIL (1050) columns should be NA
-tail(bgmT,10)[c(1047:1048)]
-dim(bgmT) # 471 So, the genotype data is in rows --> 5:470
-rownames(bgmT)[5:470]
-bgmAlt<- bgmT[5:470,]
-#bgmAlt$binN <- paste0("BIN_", bgmAlt$binN)
-head(bgmAlt)
-tail(bgmAlt)
-rownames(bgmAlt)
-bgmAlt$geno <- rownames(bgmAlt) # this is *not* a good idea!
-
-
-# mgeno <- melt(bgmAlt, id.vars="binN")
-# head(mgeno)
-# names(mgeno)[2] <- "BIL"
-# head(mgeno)
-
+load("comp.pred.Rdata")
+names(comp.pred)
+ctall <- comp.pred[[4]]
 head(ctall)
-all.comp.dat <- merge(ctall, bgmAlt, by="geno")
-head(all.comp.dat)[,1057:1058]
+dim(bgmT)
+head(bgmT)[,1:6]
+head(bgmT)[,1046:1050]
+bgmAlt<- bgmT[5:470,] # just BIN genotypes
+
+all.comp.dat <- merge(bgmAlt, ctall, by.y="genotype", by.x="BIL")
+dim(all.comp.dat)
+head(all.comp.dat)[,1045:1055]
+all.comp.dat <- all.comp.dat[,!'FinBIL.y']
+tail(colnames(all.comp.dat), 10)
+colnames(all.comp.dat)[1052]
+all.comp.dat <- all.comp.dat[-1052]
+tail(colnames(all.comp.dat), 10)
 names(all.comp.dat)[2] <- "compAll"
 rownames(all.comp.dat) <- all.comp.dat$geno
+colnames(all.comp.dat)[1050] <- "FinBIL"
 
-acd <- all.comp.dat[c(1:2,11:ncol(all.comp.dat))]
+acd <- all.comp.dat[c(1:1050,ncol(all.comp.dat))]
 head(acd)[1:15]
 summary(acd)
 acd <- droplevels(acd)
 head(acd)[1:15]
 summary(acd)
-levels(acd[3])
-
+dim(acd)
+levels(acd[1050]) # NULL, not a factor
+acd <- acd[c(1,1050:1051,2:1049)]
+colnames(acd)
 
 recode <- function(x) {
   if (x == "M82") {
@@ -48,46 +48,20 @@ recode <- function(x) {
   }
 }
 
-# levels(acd$BIN_1)
-# str <- names(acd)[3]
-# str
-# levels(acd$assign(str))
-# 
-# 
-# recode <- function(x) {
-#   x <- as.factor(x)
-#   x <- relevel(x, ref="M82")
-# }
-
 acd.recoded <- acd
-acd.recoded[3:ncol(acd.recoded)] <- apply(acd.recoded[3:ncol(acd.recoded)], c(1,2), recode)
+acd.recoded[4:ncol(acd.recoded)] <- apply(acd.recoded[4:ncol(acd.recoded)], c(1,2), recode)
 acd.recoded <- droplevels(acd.recoded)
 head(acd.recoded)[1:6,1:15]
 summary(acd.recoded)
-
-
-
-# for (i in 3:ncol(acd)) {
-#   for (j in 1:nrow(acd)) {
-#     if (acd[i,j] == "M82") {
-#        acd[i,j] <- 0
-#     } else if (acd[i,j] == "PEN") {
-#        acd[i,j] <- 2
-#     } else if (acd[i,j] == "HET") {
-#        acd[i,j] <- 1
-#     }
-#   }
-# }
-
 
 acd <- acd.recoded 
 acd <- droplevels(acd)
 summary(acd[1:10])
 dim(acd)
 
-acdm <- as.matrix(acd[3:ncol(acd)], rownames.force=F)
+acdm <- as.matrix(acd[4:ncol(acd)], rownames.force=F)
 colnames(acdm) <- NULL
-compAll <- as.vector(as.matrix(acd[2], rownames.force=F))
+compAll <- as.vector(as.matrix(acd[3], rownames.force=F)) # response vector for sparsenet
 names(compAll)
 acdat <- list(x=as.matrix(acdm), y=compAll)
 
