@@ -13,12 +13,14 @@ head(ctall)
 dim(bgmT)
 head(bgmT)[,1:6]
 head(bgmT)[,1046:1050]
-bgmAlt<- bgmT[5:470,] # just BIN genotypes
+head(bgmT)[,1:6]
+bgmAlt<- bgmT[5:470,] # just BIN genotypes, 1st 4 rows are BIN stats
+
+# Recode BIN genotypes before merging and save data frame 
 
 all.comp.dat <- merge(bgmAlt, ctall, by.y="genotype", by.x="BIL")
 dim(all.comp.dat)
 head(all.comp.dat)[,1045:1055]
-all.comp.dat <- all.comp.dat[,!'FinBIL.y']
 tail(colnames(all.comp.dat), 10)
 colnames(all.comp.dat)[1052]
 all.comp.dat <- all.comp.dat[-1052]
@@ -49,7 +51,7 @@ recode <- function(x) {
 }
 
 acd.recoded <- acd
-acd.recoded[4:ncol(acd.recoded)] <- apply(acd.recoded[4:ncol(acd.recoded)], c(1,2), recode)
+acd.recoded[4:ncol(acd.recoded)] <- apply(acd.recoded[4:ncol(acd.recoded)], c(1,2), recode) # it would be best to do this recoding on the genotype data frame before merging it with the trait data
 acd.recoded <- droplevels(acd.recoded)
 head(acd.recoded)[1:6,1:15]
 summary(acd.recoded)
@@ -59,6 +61,11 @@ acd <- droplevels(acd)
 summary(acd[1:10])
 dim(acd)
 
+genodat <- acd[-c(3:4)]
+summary(genodat[1:10]) # The first BIN is BIN 2!  Is that okay?  Did I lose a BIN somewhere along the way? YEP!!
+
+ctall <- comp.pred[[4]]
+
 acdm <- as.matrix(acd[4:ncol(acd)], rownames.force=F)
 colnames(acdm) <- NULL
 compAll <- as.vector(as.matrix(acd[3], rownames.force=F)) # response vector for sparsenet
@@ -66,16 +73,101 @@ names(compAll)
 acdat <- list(x=as.matrix(acdm), y=compAll)
 
 names(acdat)
+dim(acdat$x)
 
 library(sparsenet)
 ?sparsenet
+
+# Hack lambda0() so that it returns a value
+# lambda0 <- function (x, y, weights = rep(1, N), exclude = NULL) 
+# {
+#   if (length(exclude)) 
+#     x = x[, -exclude]
+#   N = length(y)
+#   ybar = weighted.mean(y, weights)
+#   yvar = weighted.mean((y - ybar)^2, weights)
+#   y = (y - ybar)/sqrt(yvar)
+#   weights = weights/N
+#   xbar = t(weights) %*% x
+#   xvar = t(weights) %*% (x^2) - xbar^2
+#   grad = abs(t(y * weights) %*% x)/sqrt(xvar)
+#   max(grad, na.rm=TRUE)
+# }
+# x=acdat$x
+# y=acdat$y
+# lambda0 <- lambda0(x=x, y=y)
+# min.lambda <- log(lambda0) / 0.0001
+# 
+# lambda.manual = exp(seq(from = log(lambda0), to = min.lambda, length = 50))
+# cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual)
+# plot(cv.sp)
+
+lambda.manual = exp(seq(from = -200, to = 0, length = 50))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual)
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se
+
+lambda.manual = exp(seq(from = -100, to = 0, length = 50))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual)
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se
+
+cv.sp$parms.min[[2]] - cv.sp$parms.1se[[2]] # if this difference is = zero, then iterate
+
+
+lambda.manual = exp(seq(from = -10, to = -2, length = 50))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual)
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se 
+# If I had to stick to such a wide lambda range, I should make the length longer so as to
+# allow a better estimate of gamma.1se
+
+lambda.manual = exp(seq(from = -6, to = -2, length = 100))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual)
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se
+
+lambda.manual = exp(seq(from = -6, to = -2, length = 100))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual, nfolds=30, trace.it=TRUE)
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se
+# increase the nfolds until the paths are smooth
+# 
+
+lambda.manual = exp(seq(from = -6, to = -2, length = 200))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual, ngamma=100, nfolds=10, trace.it=TRUE, warm="both")
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se
+# The paths don't get any smoother with higher nfolds nor longer lengths.
+# Probably what would make it smoother is more gamma values in the range
+# 10-fold may be best
+# YEP. more values of both gamma and lambda w/ 10-fold CV is the way to go
+# ...although thinking about what portion on the BILs I need to get good validation makes
+# me think that lower fold CV is better b/c each set has a larger proportion of the BILs,
+# e.g. 6- or 5-fold CV seems good.
+# maybe 10-fold is a bit better, b/c ther CV error is lower  ...could do that w/ n=200 for
+# lambda and gamma
+
+lambda.manual = exp(seq(from = -6, to = -2, length = 100))
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda=lambda.manual, ngamma=18, nfolds=6, trace.it=TRUE, warm="both")
+plot(cv.sp)
+cv.sp$parms.min
+cv.sp$parms.1se
+
+cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, lambda.min.ratio=0.0001, nlambda=50, nfolds=10, trace.it = TRUE, pmax=1048, warm="both")
+
+sp <- sparsenet(x=acdat$x, y=acdat$y)
+
 cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, pmax=358, lambda.min.ratio=0.1, nlambda=20, warm="both", nfolds=287, trace.it = TRUE)
 
-# Try running lambda0() with the above x and y to test...
-x=acdat$x
-y=acdat$y
-lambda0 = 0
 
+# ** 10 gamma values and 50 lambda may be reasonable ...it's the number used in the CRAN announcement of the package
 cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, pmax=358, nlambda=50, ngamma=9, max.gamma=150, min.gamma=1.000001, lambda.min.ratio=0.01, nlambda=20, warm="both", nfolds=287, trace.it = TRUE)
 
 #cv.sp <- cv.sparsenet(x=acdat$x, y=acdat$y, trace.it = TRUE)
@@ -94,8 +186,9 @@ cv.sp$parms.min[[2]] # lambda=0.03606177
 
 lambda.manual = exp(seq(from = log(0.15), to = log(0.015), length = 150))
 cv.sp_narrow <- cv.sparsenet(x=acdat$x, y=acdat$y, ngamma=20, max.gamma=40, min.gamma=1.000001, lambda=lambda.manual, warm="both", nfolds=100, trace.it = TRUE)
+save(cv.sp_narrow, file="cv.sp_narrow.Rdata")
 par(mfrow=c(1,1))
-plot(cv.sp_narrow)
+plot(cv.sp_narrow) # now that I'm including the residuals *and* the plant replicates 
 cv.sp_narrow$parms.1se; cv.sp_narrow$parms.min
 str(cv.sp_narrow)
 cv.sp_narrow$which.min; cv.sp_narrow$which.1se
