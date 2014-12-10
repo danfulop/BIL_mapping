@@ -4,19 +4,73 @@ library(reshape2)
 library(sparsenet)
 
 setwd("/Users/Dani/UCD/BILs/leaf_traits/")
-#load("/Users/Dani/UCD/BILs/leaf_traits/ctall.Rdata") # ** replace this w/ a table of predicted values excluding random effects **
+
 load("/Users/Dani/UCD/BILs/bgmT.Rdata")
-load("comp.pred.Rdata")
-names(comp.pred)
-ctall <- comp.pred[[4]]
-head(ctall)
 dim(bgmT)
 head(bgmT)[,1:6]
 head(bgmT)[,1046:1050]
 head(bgmT)[,1:6]
-bgmAlt<- bgmT[5:470,] # just BIN genotypes, 1st 4 rows are BIN stats
+dim(bgmT)
+genotab <- bgmT[5:nrow(bgmT),] # just BIN genotypes, 1st 4 rows are BIN stats
 
 # Recode BIN genotypes before merging and save data frame 
+# Function to recode genotype information into 0s, 1s, and 2s
+recode <- function(x) {
+  if (x == "M82") {
+    x <- 0
+  } else if (x == "PEN") {
+    x <- 2
+  } else if (x == "HET") {
+    x <- 1
+  }
+}
+
+genotab.recoded <- genotab
+genotab.recoded[1:(ncol(genotab)-2)] <- apply(genotab.recoded[1:(ncol(genotab)-2)], c(1,2), recode)
+genotab.recoded <- droplevels(genotab.recoded)
+head(genotab.recoded)[1:6,1:15]
+head(genotab.recoded)[1:6,(ncol(genotab.recoded)-5):ncol(genotab.recoded)]
+summary(genotab.recoded) # the mean value for the genotype/BIN columns is an indication of what proportion of the population has non-M82 "allele"
+
+lambda.manual = exp(seq(from = -6, to = 0, length = 50))
+
+# Function to fit SparseNet regression -- mapping function
+map.fx <- function(df, colN, gt.tab, lambda.manual) {
+  trait.name <- names(df)[colN] # (list element) name for focal trait
+  trait.dat <- df[[get("trait.name")]] # Assign focal trait data.frame
+  trait.dat <- merge(gt.tab, trait.dat, by.x="BIL", by.y="genotype") # merge genotype and trait data
+  trait.dat <- trait.dat[-which(names(trait.dat)=="FinBIL.y")] # remove redundant "FinBIL.y"
+  names(trait.dat)[which(names(trait.dat)=="FinBIL.x")] <- "FinBIL" # rename FinBIL.x into FinBIL
+  trait.dat <- droplevels(trait.dat)
+  geno.mat <- as.matrix(trait.dat[2:(ncol(trait.dat)-5)], rownames.force=F)
+  response <- as.vector(as.matrix(trait.dat['predPlusResid'], rownames.force=F)) # response vector for sparsenet
+  cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual)
+  plot(cv.sp)
+  #cv.sp$parms.min
+  #cv.sp$parms.1se 
+  
+  # SAVE PLOTS, run through all traits, examine plots
+  
+}
+
+# Complexity data
+load("comp.pred.Rdata")
+x <- comp.pred
+y=1
+comp.pred[[1]]
+head(comp.pred[[1]], 50)
+
+# Asym PCs
+load("asym.pred.Rdata")
+asym.pred[[1]]
+df <- asym.pred
+colN=2
+gt.tab <- genotab.recoded
+
+
+names(comp.pred)
+ctall <- comp.pred[[4]]
+head(ctall)
 
 all.comp.dat <- merge(bgmAlt, ctall, by.y="genotype", by.x="BIL")
 dim(all.comp.dat)
@@ -40,15 +94,6 @@ levels(acd[1050]) # NULL, not a factor
 acd <- acd[c(1,1050:1051,2:1049)]
 colnames(acd)
 
-recode <- function(x) {
-  if (x == "M82") {
-    x <- 0
-  } else if (x == "PEN") {
-    x <- 2
-  } else if (x == "HET") {
-    x <- 1
-  }
-}
 
 acd.recoded <- acd
 acd.recoded[4:ncol(acd.recoded)] <- apply(acd.recoded[4:ncol(acd.recoded)], c(1,2), recode) # it would be best to do this recoding on the genotype data frame before merging it with the trait data
