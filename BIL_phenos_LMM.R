@@ -162,7 +162,7 @@ predResp <- function(x, y, randform) {  # Include as input column index of respo
   predDat <- merge(labs, predDat, by="plant")
   fit.df <- fit@frame # get the LMM-object's response and factor data frame
   fit.df$resid <- residuals(fit, type="response", scaled=FALSE) # calculate residuals
-  fit.df <- fit.df[3:4]  # subset to only keep plant ID and residuals
+  fit.df <- fit.df[,c('plant','resid')]  # subset to only keep plant ID and residuals
   mean.resid <- ddply(fit.df, .(plant), function(x) {  # calculate mean residuals
     mean.resid <- mean(x$resid)
     data.frame(mean.resid=mean.resid)
