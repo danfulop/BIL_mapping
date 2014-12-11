@@ -60,6 +60,13 @@ y=1
 comp.pred[[1]]
 head(comp.pred[[1]], 50)
 
+# Sym PCs
+load("sym.pred.Rdata")
+#sym.pred[[1]]
+df <- sym.pred
+colN=1
+gt.tab <- genotab.recoded
+
 # Asym PCs
 load("asym.pred.Rdata")
 asym.pred[[1]]
