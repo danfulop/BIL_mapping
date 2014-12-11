@@ -36,6 +36,7 @@ all.traits <- merge(all.traits, sym.means, by='geno')
 all.traits <- merge(all.traits, asym.means, by='geno')
 head(all.traits)
 row.names(all.traits) <- all.traits$geno
+save(all.traits, file="all.traits.Rdata")
 all.traits.nolabs <- all.traits[2:ncol(all.traits)]
 head(all.traits.nolabs)
 
