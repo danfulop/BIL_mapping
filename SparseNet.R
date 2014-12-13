@@ -63,7 +63,7 @@ map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   sp.fit <- sparsenet(x=geno.mat, y=response, lambda=lambda.seq, gamma=gamma.seq, warm="both") # full dataset sparsenet fit
   coefs <- sp.fit$coefficients$g9$beta[,1] # save preferred set of coefficients
   coefs <- cbind(bin.stats, coefs) # combine with bin information
-  non.zero.coefs <- coefs[coefs!=0] # non-zero coefficients
+  non.zero.coefs <- coefs[coefs!=0,] # non-zero coefficients
   n.coef <- nrow(non.zero.coefs) # number of non-zero coefficients **this prob. fails b/c it should be nrow, b/c now it's a data.frame
   results <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, sp.fit=sp.fit)
   results
@@ -125,6 +125,12 @@ system.time(asym.map <- foreach(i=1:length(asym.pred), .options.multicore=mcopti
 names(asym.map) <- names(asym.pred)
 save(asym.map, file="asym.map.Rdata")
 
+#---------
+# FIX n.coefs variable
+nrow(comp.map[[1]]$non.zero.coefs)
+
+
+#
 
 allComp.results.additive <-  cbind(bg[c(1:4,471)], spn.min$coefficients$g9$beta[,74])
 head(allComp.results.additive)
