@@ -68,21 +68,6 @@ map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   results <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, sp.fit=sp.fit)
   results
 }
-#---------
-# FIX n.coefs variable
-head(comp.map$pri$coefs)
-comp.map$pri$coefs[comp.map$pri$coefs$coefs!=0,]
-comp.map$pri$non.zero.coefs
-nrow(comp.map[[1]]$non.zero.coefs)
-fix.fx <- function(dat.list) {
-  for (i in 1:dat.list)
-}
-
-# SAVE PLOTS, run through all traits, examine plots => if I reuse this code I'll have to add back dat.name to the function's variables
-#   plot.path <- paste0("/Users/Dani/UCD/BILs/CVplots/", dat.name, ".", trait.name, ".CVplot", ".pdf")
-#   pdf(file=plot.path)
-#   plot(cv.sp)
-#   dev.off()
 
 ## Fit SparseNet regressions
 lambda.manual = exp(seq(from = -5.5, to = -1.5, length = 50))
@@ -134,9 +119,29 @@ system.time(asym.map <- foreach(i=1:length(asym.pred), .options.multicore=mcopti
 names(asym.map) <- names(asym.pred)
 save(asym.map, file="asym.map.Rdata")
 
+#---------
+# FIX n.coefs variable
+fix.fx <- function(dat.list) {
+  for (i in 1:length(dat.list)) {
+    coefs <- dat.list[[i]][[1]]
+    dat.list[[i]][[2]] <- coefs[coefs$coefs!=0,]
+    dat.list[[i]][[3]] <- nrow(dat.list[[i]][[2]])
+  }
+  dat.list
+}
 
+comp.map <- fix.fx(comp.map)
+circ.map <- fix.fx(circ.map)
+sym.map <- fix.fx(sym.map)
+asym.map <- fix.fx(asym.map)
 
-#
+# SAVE PLOTS, run through all traits, examine plots => if I reuse this code I'll have to add back dat.name to the function's variables
+#   plot.path <- paste0("/Users/Dani/UCD/BILs/CVplots/", dat.name, ".", trait.name, ".CVplot", ".pdf")
+#   pdf(file=plot.path)
+#   plot(cv.sp)
+#   dev.off()
+
+#----------
 
 allComp.results.additive <-  cbind(bg[c(1:4,471)], spn.min$coefficients$g9$beta[,74])
 head(allComp.results.additive)
