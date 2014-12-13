@@ -7,6 +7,8 @@ library(doParallel)
 
 setwd("/Users/Dani/UCD/BILs/leaf_traits/")
 
+# Load data, recode genotypes, etc
+#------
 load("/Users/Dani/UCD/BILs/bgmT.Rdata")
 genotab <- bgmT[5:nrow(bgmT),] # just BIN genotypes, 1st 4 rows are BIN stats
 genotab <- droplevels(genotab)
@@ -36,11 +38,11 @@ genotab.recoded <- genotab
 genotab.recoded[1:(ncol(genotab.recoded)-2)] <- apply(genotab.recoded[1:(ncol(genotab.recoded)-2)], c(1,2), recode)
 genotab.recoded <- droplevels(genotab.recoded)
 #save(genotab.recoded, file="genotab.recoded.Rdata")
-
-##-----------
 load("genotab.recoded.Rdata")
+#-------
 
 # Function to fit SparseNet regression -- mapping function
+#----
 map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   trait.name <- names(datl)[ln] # (list element) name for focal trait
   trait.dat <- datl[[get("trait.name")]] # Assign focal trait data.frame
@@ -68,8 +70,10 @@ map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   results <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, sp.fit=sp.fit)
   results
 }
+#----
 
-## Fit SparseNet regressions
+# Fit SparseNet regressions
+#-------
 lambda.manual = exp(seq(from = -5.5, to = -1.5, length = 50))
 # Complexity data 
 load("comp.pred.Rdata") # load LMM predicted response values + residuals (1 value per plant)
@@ -118,9 +122,10 @@ system.time(asym.map <- foreach(i=1:length(asym.pred), .options.multicore=mcopti
 })
 names(asym.map) <- names(asym.pred)
 save(asym.map, file="asym.map.Rdata")
+#------
 
-#---------
 # FIX n.coefs variable
+#---------
 fix.fx <- function(dat.list) {
   for (i in 1:length(dat.list)) {
     coefs <- dat.list[[i]][[1]]
@@ -134,13 +139,18 @@ comp.map <- fix.fx(comp.map)
 circ.map <- fix.fx(circ.map)
 sym.map <- fix.fx(sym.map)
 asym.map <- fix.fx(asym.map)
+#---------
 
+# cv.sp plot code
+#------
 # SAVE PLOTS, run through all traits, examine plots => if I reuse this code I'll have to add back dat.name to the function's variables
 #   plot.path <- paste0("/Users/Dani/UCD/BILs/CVplots/", dat.name, ".", trait.name, ".CVplot", ".pdf")
 #   pdf(file=plot.path)
 #   plot(cv.sp)
 #   dev.off()
+#------
 
+# old code
 #----------
 
 allComp.results.additive <-  cbind(bg[c(1:4,471)], spn.min$coefficients$g9$beta[,74])
