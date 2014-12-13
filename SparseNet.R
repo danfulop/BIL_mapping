@@ -64,7 +64,7 @@ map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   coefs <- sp.fit$coefficients$g9$beta[,1] # save preferred set of coefficients
   coefs <- cbind(bin.stats, coefs) # combine with bin information
   non.zero.coefs <- coefs[coefs!=0] # non-zero coefficients
-  n.coef <- length(non.zero.coefs) # number of non-zero coefficients
+  n.coef <- nrow(non.zero.coefs) # number of non-zero coefficients **this prob. fails b/c it should be nrow, b/c now it's a data.frame
   results <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, sp.fit=sp.fit)
   results
 }
