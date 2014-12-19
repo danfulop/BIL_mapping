@@ -132,23 +132,6 @@ names(asym.map) <- names(asym.pred)
 save(asym.map, file="asym.map.Rdata")
 #------
 
-# FIX n.coefs variable
-#---------
-# fix.fx <- function(dat.list) {
-#   for (i in 1:length(dat.list)) {
-#     coefs <- dat.list[[i]][[1]]
-#     dat.list[[i]][[2]] <- coefs[coefs$coefs!=0,]
-#     dat.list[[i]][[3]] <- nrow(dat.list[[i]][[2]])
-#   }
-#   dat.list
-# }
-# 
-# comp.map <- fix.fx(comp.map)
-# circ.map <- fix.fx(circ.map)
-# sym.map <- fix.fx(sym.map)
-# asym.map <- fix.fx(asym.map)
-#---------
-
 # Construct genotypic matrix for epistatic searches
 #----
 geno.mat <- as.matrix(genotab.recoded[,1:(ncol(genotab.recoded)-2)])
@@ -191,8 +174,8 @@ save(epi.bin.stats, file="epi.bin.stats.Rdata")
 load("epi.bin.stats.Rdata")
 
 # Function to check for the lambda range
-#-------
-plot.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual, dat.name) {
+#------
+plot.fx <- function(datl, ln, gt.tab, lambda.manual, dat.name) {
   trait.name <- names(datl)[ln] # (list element) name for focal trait
   trait.dat <- datl[[get("trait.name")]] # Assign focal trait data.frame
   trait.dat <- merge(gt.tab, trait.dat, by.x="BIL", by.y="genotype") # merge genotype and trait data
@@ -201,13 +184,53 @@ plot.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual, dat.name) {
   trait.dat <- droplevels(trait.dat)
   geno.mat <- as.matrix(trait.dat[2:(ncol(trait.dat)-5)], rownames.force=F) # genotype matrix, i.e. Xs
   response <- as.vector(as.matrix(trait.dat['predPlusResid'], rownames.force=F)) # response vector for sparsenet, i.e. Ys
-  cv.sp <- cv.sparsenet(x=geno.mat, y=response, ngamma=9, nfolds=6, warm="both")
-  plot.path <- paste0("/Users/Dani/UCD/BILs/epiCVplots/", dat.name, ".", trait.name, ".CVplot", ".pdf")
+  cv.sp <- cv.sparsenet(x=geno.mat, y=response, ngamma=9, lambda=lambda.manual, nfolds=6, warm="both")
+  plot.path <- paste0(getwd(), "/epiCVplots/", dat.name, ".", trait.name, ".CVplot", ".pdf")
   pdf(file=plot.path)
   plot(cv.sp)
   dev.off()
 }
+#------
+
+# Check lambda ranges
 #-------
+lambda.manual = exp(seq(from = -5.5, to = -1.5, length = 20))
+# Complexity data 
+load("comp.pred.Rdata") # load LMM predicted response values + residuals (1 value per plant)
+registerDoParallel(cores=4) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+nofun <- function(a,b) NULL
+system.time(foreach(i=1:length(comp.pred), .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
+  plot.fx(datl=comp.pred, ln=i, gt.tab=epitab, lambda.manual=lambda.manual, dat.name="comp")
+})
+
+# Circ. data
+load("circ.pred.Rdata") # load LMM predicted response values + residuals (1 value per plant)
+registerDoParallel(cores=5) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+nofun <- function(a,b) NULL
+system.time(foreach(i=1:length(circ.pred), .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
+  plot.fx(datl=circ.pred, ln=i, gt.tab=epitab, lambda.manual=lambda.manual, dat.name="circ")
+})
+
+# Sym PCs
+load("sym.pred.Rdata") # load LMM predicted response values + residuals (1 value per plant)
+registerDoParallel(cores=9) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+nofun <- function(a,b) NULL
+system.time(foreach(i=1:length(sym.pred), .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
+  plot.fx(datl=sym.pred, ln=i, gt.tab=epitab, lambda.manual=lambda.manual, dat.name="sym")
+})
+
+# Asym PCs
+load("asym.pred.Rdata") # load LMM predicted response values + residuals (1 value per plant)
+registerDoParallel(cores=7) # register parallel backend
+mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
+nofun <- function(a,b) NULL
+system.time(foreach(i=1:length(asym.pred), .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
+  plot.fx(datl=asym.pred, ln=i, gt.tab=epitab, lambda.manual=lambda.manual, dat.name="asym")
+})
+#------
 
 # Function to fit SparseNet regression **with epistasis** -- mapping function
 #----
@@ -222,10 +245,7 @@ epi.map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   response <- as.vector(as.matrix(trait.dat['predPlusResid'], rownames.force=F)) # response vector for sparsenet, i.e. Ys
   tmp <- vector("list", length=10) # temp list for storing 1se parameters
   tmp2 <- vector("list", length=10) # temp list for storing min parameters
-  registerDoParallel(cores=10) # register parallel backend
-  mcoptions <- list(preschedule=TRUE, set.seed=FALSE) # multi-core options
-  nofun <- function(a,b) NULL
-  foreach(j=1:10, .options.multicore=mcoptions, .combine='nofun') %dopar% { # redo cross-validation 10 times to get more "stable" tuning parameters
+  for(j in 1:10) { # redo cross-validation 10 times to get more "stable" tuning parameters
     cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=18, nfolds=6, warm="both")
     tmp[[j]] <- cv.sp$parms.1se # 1 std. dev. error params.
     tmp2[[j]] <- cv.sp$parms.min # min CV error params.
