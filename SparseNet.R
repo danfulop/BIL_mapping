@@ -130,6 +130,11 @@ system.time(asym.map <- foreach(i=1:length(asym.pred), .options.multicore=mcopti
 })
 names(asym.map) <- names(asym.pred)
 save(asym.map, file="asym.map.Rdata")
+
+# Flowering Time (FT)
+load(FT.pred.Rdata)
+FT.map <- map.fx(datl=FT.pred, ln=1, gt.tab=genotab.recoded, bin.stats=bin.stats, lambda.manual=lambda.manual)
+save(FT.map, file="FT.map.Rdata")
 #------
 
 # Construct genotypic matrix for epistatic searches
