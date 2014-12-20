@@ -246,7 +246,7 @@ epi.map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   tmp <- vector("list", length=10) # temp list for storing 1se parameters
   tmp2 <- vector("list", length=10) # temp list for storing min parameters
   for(j in 1:10) { # redo cross-validation 10 times to get more "stable" tuning parameters
-    cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=18, nfolds=6, warm="both")
+    cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=9, max.gamma=20, nfolds=6, warm="both")
     tmp[[j]] <- cv.sp$parms.1se # 1 std. dev. error params.
     tmp2[[j]] <- cv.sp$parms.min # min CV error params.
   }
