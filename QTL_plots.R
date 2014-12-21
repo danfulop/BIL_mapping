@@ -1,5 +1,7 @@
 # use bin.stats and epi.bin.stats to setup the framework of the plots
 
+# Additive plots
+#-----------
 load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
 bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
 
@@ -49,3 +51,9 @@ plot.map(asym.map, bin.stats, dat.name="asym")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
 FT.map <- list(FT=FT.map) # modify FT results so that they fit the structure of the plotting function, i.e. list with sublist(s)
 plot.map(FT.map, bin.stats, dat.name="FT")
+#---------
+
+# Epistatic plots
+#-----------
+
+#-----------
