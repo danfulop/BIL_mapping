@@ -55,5 +55,13 @@ plot.map(FT.map, bin.stats, dat.name="FT")
 
 # Epistatic plots
 #-----------
+load("/Users/Dani/UCD/BILs/leaf_traits/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
+nz.coef <- comp.epi.map$pri$non.zero.coefs
+nz.coef
+# separate into additive and epistatic QTL
+# for additive QTL plot as before
+# for epistatic QTL plot in a 2D plane as a heatmap
+# first, though, deconvolute the epistatic QTL data into separate chromosome and bin position columns
+
 
 #-----------
