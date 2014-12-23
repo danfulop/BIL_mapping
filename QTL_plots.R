@@ -78,20 +78,19 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
       dat$bin.mid <- as.numeric(as.character(dat$bin.mid)) / 1000000
       dat$bin.start <- as.numeric(as.character(dat$bin.start)) / 1000000
       dat$bin.end <- as.numeric(as.character(dat$bin.end)) / 1000000
-      dat$y.lo <- -3*(max(abs(dat$coefs), na.rm=T)/20)
+      dat$y.lo <- -5*(max(abs(dat$coefs), na.rm=T)/20)
       dat$y.hi <- -1*(max(abs(dat$coefs), na.rm=T)/20)
       # Plot by physical distance
-      qtl.plot <- ggplot(dat) + geom_segment(aes(y=y.lo, yend=y.hi, x=bin.start, xend=bin.start), size=0.05, alpha=0.7) +
-        geom_segment(aes(y=y.lo, yend=y.hi, x=bin.end, xend=bin.end), size=0.05, alpha=0.7) + 
+      qtl.plot <- ggplot(dat) + geom_segment(aes(y=y.lo, yend=y.hi, x=bin.start, xend=bin.start), size=0.05) +
+        geom_segment(aes(y=y.lo, yend=y.hi, x=bin.end, xend=bin.end), size=0.05) + 
         geom_segment(aes(y=y.lo, yend=y.lo, x=bin.start, xend=bin.end ), size=0.05) +
         geom_segment(aes(y=y.hi, yend=y.hi, x=bin.start, xend=bin.end ), size=0.05) +
-        geom_point(aes(x=bin.mid, y=abs(coefs), color=color), size=3) + facet_wrap(~ chr, ncol=2) +
-        theme_grey(16) + labs(y="Absolute magnitude of coefficients", x="Genotypic bin structure in physical distance (Mbp)") +
-        scale_color_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend")
-      ggsave(filename = paste(dat.name, trait.name,"pdf", sep="."), qtl.plot, width=30, height=15)
+        geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.hi,ymax=abs(coefs), color=color, fill=color)) + facet_grid(chr ~ .) +
+        theme_bw(8) + labs(y="Absolute magnitude of coefficients", x="Genotypic bin structure in physical distance (Mbp)") +
+        scale_color_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") +
+        scale_fill_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") + theme(legend.position="none")
+      ggsave(filename = paste(dat.name, trait.name,"pdf", sep="."), qtl.plot, width=8, height=10.5)
     }
-      
-      
   }
 }
 
