@@ -17,4 +17,17 @@ bin.cor <- distancematrix(bin.code, d="cor") # Calculate correlation distance ma
 bin.cor <- as.matrix(bin.cor)
 colnames(bin.cor) <- rownames(bin.code)
 rownames(bin.cor) <- rownames(bin.code)
-bin.cor[420:432, 420:432]
+length(which(bin.cor == 0)) # 1117
+bin.cor[which(bin.cor == 0)] # these are perfect correlations
+length(which(bin.cor < 0)) # 2096
+bin.cor[which(bin.cor < 0)] # ALL these cells are -99999, which is odd and seems like a numerical issue.
+
+
+
+bin.cor <- 1 - bin.cor # convert from distnce to correlation matrix
+save(bin.cor, file="/Users/Dani/UCD/BILs/leaf_traits/bin.cor.Rdata")
+
+which(bin.cor[425, ] > 0.95)
+bin.cor[425, 23:27]
+1 - bin.cor[425, 25]
+
