@@ -349,17 +349,16 @@ geno.mat <- as.matrix(trait.dat[2:(ncol(trait.dat)-5)], rownames.force=F) # geno
 response <- as.vector(as.matrix(trait.dat['predPlusResid'], rownames.force=F)) # response vector for sparsenet, i.e. Ys
 registerDoParallel(cores=5) # register parallel backend
 mcoptions <- list(preschedule=FALSE, set.seed=FALSE) # multi-core options
-tmp <- vector("list", length=10) # temp list for storing 1se parameters
-tmp2 <- vector("list", length=10) # temp list for storing min parameters
-nofun <- function(a,b) NULL
-foreach(j=1:10, .options.multicore=mcoptions, .combine='nofun') %dopar% { # redo cross-validation 10 times to get more "stable" tuning parameters
+cv.parms <- vector("list", length=10) # temp list for storing CV parameters
+cv.parms <- foreach(j=1:10, .options.multicore=mcoptions, .combine=cbind) %dopar% { # redo cross-validation 10 times to get more "stable" tuning parameters
   cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=9, max.gamma=20, nfolds=6, warm="both")
-  tmp[[j]] <- cv.sp$parms.1se # 1 std. dev. error params.
-  tmp2[[j]] <- cv.sp$parms.min # min CV error params.
+  rbind(cv.sp$parms.1se, cv.sp$parms.min)
 }
-mean.gamma <- mean(unlist(tmp)[seq(1,19,2)]) # mean gamma
-mean.lambda <- mean(unlist(tmp)[seq(2,20,2)]) # mean lambda
-min.cv.lambda <- mean(unlist(tmp2)[seq(2,20,2)]) # min cv lambda  
+colnames(cv.parms) <- paste0(rep("CV", 10), 1:10)
+rownames(cv.parms) <- c("gamma.1se", "lambda.1se", "gamma.min", "lambda.min")
+mean.gamma <- mean(cv.parms[1,]) # mean gamma.1se
+mean.lambda <- mean(cv.parms[2,]) # mean lambda.1se
+min.cv.lambda <- mean(cv.parms[4,]) # min cv lambda  
 cv.lambda.seq <- cv.sp$sparsenet.fit$lambda
 start.lambda.seq <- cv.lambda.seq[which(cv.lambda.seq[] > min.cv.lambda)[length(which(cv.lambda.seq[] > min.cv.lambda))] ] # store lambda value just beyond cv.lambda.min
 # Fit sparsenet one more time with the mean tuning parameters
@@ -369,6 +368,6 @@ coefs <- sp.fit$coefficients$g9$beta[,1] # save preferred set of coefficients
 coefs <- cbind(bin.stats, coefs) # combine with bin information
 non.zero.coefs <- coefs[coefs$coefs!=0,] # non-zero coefficients
 n.coef <- nrow(non.zero.coefs) # number of non-zero coefficients **this prob. fails b/c it should be nrow, b/c now it's a data.frame
-FT.epi.map <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, start.lambda.seq=start.lambda.seq, sp.fit=sp.fit)
+FT.epi.map <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, start.lambda.seq=start.lambda.seq, sp.fit=sp.fit, cv.parms=cv.parms)
 save(FT.epi.map, "FT.epi.map.Rdata")
 #------
