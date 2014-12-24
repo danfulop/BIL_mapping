@@ -174,10 +174,44 @@ plot.epi.map <- function(map.dat, bin.stats, dat.name) {
       epi.nz.coef$int0.90.end2 <- laply(epi.nz.coef$int0.90.end, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef <- epi.nz.coef[c(13:17,6,18:ncol(epi.nz.coef))] # eliminate original columns except coefs, and place coefs in its proper order/position
       epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)] <- lapply(epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)], function(f) as.numeric(as.character(str_trim(f))) )
+      # I may need to split the int0.95 and int0.90 labels into first and last bins
+      # What I actually need is 1 dataset for each set of data to be plotted, as many as 3: selected bin, 0.95 interval, and 0.90 interval
+      # ...and where all the pertinent bins have the correct coefficient value
+      # at least that's the way to make it work with geom_raster()
+      # Perhaps geom_tile() is more flexible...
+      # I could use geom_tile() with a free scale ...and then use the coordinates instead of bin-numbers
+      # OR, I could used geom_rect instead w/ free scale and w/ coordinates or bins
+      # ** I may need a matrix of points!! **
+      # Use BIN-number, and not full BIN label for axes
       nz.coef <- rbind(adt.nz.coef, epi.nz.coef)
+      head(nz.coef)
+      nz.coef$int951min <- laply(nz.coef$int0.951, function(x) str_split(x, ":")[[1]][1])
+      nz.coef$int951max <- laply(nz.coef$int0.951, function(x) str_split(x, ":")[[1]][2])
+      nz.coef$int901min <- laply(nz.coef$int0.901, function(x) str_split(x, ":")[[1]][1])
+      nz.coef$int901max <- laply(nz.coef$int0.901, function(x) str_split(x, ":")[[1]][2])
+      nz.coef$int952min <- laply(nz.coef$int0.952, function(x) str_split(x, ":")[[1]][1])
+      nz.coef$int952max <- laply(nz.coef$int0.952, function(x) str_split(x, ":")[[1]][2])
+      nz.coef$int902min <- laply(nz.coef$int0.902, function(x) str_split(x, ":")[[1]][1])
+      nz.coef$int902max <- laply(nz.coef$int0.902, function(x) str_split(x, ":")[[1]][2])
+      head(nz.coef)
+      # save nz.coef, just b/c it's a convenient view of the data
       
+      plot.dat <- merge(nz.coef, bin.stats) #, all=TRUE) # merge nz.coef with doubled bin.stats
+      plot.dat$coefs[is.na(plot.dat$coefs)] <- 0 # make all NA coefficients == 0
+      bin.stats.p <- bin.stats
+      bin.stats.p$coefs <- NA
+      head(plot.dat, 20)
+      plot.dat
+      epi.plot <- ggplot(bin.stats, aes(x=bin1, y=bin2)) + geom_raster()
+      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int901min, xmax=int901max, ymin=int902min, ymax=int902max, fill=coefs), alpha=0.7)
+      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int951min, xmax=int951max, ymin=int952min, ymax=int952max, fill=coefs))
+      epi.plot <- epi.plot + scale_fill_gradient2(low="magenta", mid="black", high="green")
+      epi.plot
       
-      
+      str_split(nz.coef[1, 'int0.951'], ":")[[1]][1]
+      str_split(nz.coef[1, 'int0.951'], ":")[[1]][2]
+      # 1) lay down the "structure" w/ geom_raster or geom_tile
+      # 2) then use geom_rect to draw 0.90 and 0.95 intervals in 2D
     }
   }
 }
