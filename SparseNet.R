@@ -352,9 +352,6 @@ mcoptions <- list(preschedule=FALSE, set.seed=FALSE) # multi-core options
 cv.parms <- foreach(j=1:10, .options.multicore=mcoptions, .combine=cbind) %dopar% { # redo cross-validation 10 times to get more "stable" tuning parameters
   cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=9, max.gamma=50, nfolds=6, warm="both")
   cv.parms[[j]] <- cbind(cv.sp$parms.1se, cv.sp$parms.min)
-  pdf(file=paste0("FT.cv.plot.", j, ".pdf") )
-  plot(cv.sp)
-  dev.off()
 }
 colnames(cv.parms) <- paste0( paste0(rep("CV", 10), sort(rep(1:10, 2))), rep(c(".1se", ".min")) )
 save(cv.parms, file="cv.parms.Rdata")
