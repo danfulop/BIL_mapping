@@ -1,4 +1,3 @@
-#install.packages("sparsenet")
 library(reshape2)
 library(sparsenet)
 library(ggplot2)
@@ -235,6 +234,11 @@ nofun <- function(a,b) NULL
 system.time(foreach(i=1:length(asym.pred), .options.multicore=mcoptions, .combine='nofun') %dopar% { # run loop
   plot.fx(datl=asym.pred, ln=i, gt.tab=epitab, lambda.manual=lambda.manual, dat.name="asym")
 })
+
+# Flowering Time data (FT)
+lambda.manual = exp(seq(from = -4.5, to = 0, length = 20))
+load("FT.pred.Rdata")
+plot.fx(datl=FT.pred, ln=1, gt.tab=epitab, lambda.manual=lambda.manual, dat.name="FT")
 #------
 
 # Function to fit SparseNet regression **with epistasis** -- mapping function
@@ -283,6 +287,7 @@ sym.lambda <- list(sym.PC1 = c(-4, -2), sym.PC2 = c(-4.5, -2.5), sym.PC3 = c(-4.
                    sym.PC6 = c(-3.7, -2.2), sym.PC7 = c(-3.8, -1.8), sym.PC8 = c(-3.7, -2), sym.PC9 = c(-3.5, -1.5) )
 asym.lambda <- list(asym.PC1 = c(-3.5, -1.5), asym.PC2 = c(-3.5, -1.5), asym.PC3 = c(-3.5, -1.5), asym.PC4 = c(-3.5, -1.5), asym.PC5 = c(-3.5, -1.5),
                     asym.PC6 = c(-3.5, -1.5), asym.PC7 = c(-3.5, -1.5) )
+FT.lambda <- list(FT=c(-3.2, -1.2))
 #----
 
 # Fit epistatic SparseNet regressions
@@ -328,4 +333,42 @@ asym.epi.map <- foreach(i=1:length(asym.pred), .options.multicore=mcoptions) %do
 }
 names(asym.epi.map) <- names(asym.pred)
 save(asym.epi.map, file="asym.epi.map.Rdata")
+
+# Flowering Time (FT)
+load("FT.pred.Rdata")
+# Forgo mapping function and reuse its code, but with 5-core parallelization
+lambda.manual <- exp(seq(from=FT.lambda$FT[1], to=FT.lambda$FT[2], length=(abs(FT.lambda$FT[1] - FT.lambda$FT[2]))*10 ))
+datl=FT.pred; ln=1; gt.tab=epitab; bin.stats=epi.bin.stats; lambda.manual=lambda.manual
+trait.name <- names(datl)[ln] # (list element) name for focal trait
+trait.dat <- datl[[get("trait.name")]] # Assign focal trait data.frame
+trait.dat <- merge(gt.tab, trait.dat, by.x="BIL", by.y="genotype") # merge genotype and trait data
+trait.dat <- trait.dat[-which(names(trait.dat)=="FinBIL.y")] # remove redundant "FinBIL.y"
+names(trait.dat)[which(names(trait.dat)=="FinBIL.x")] <- "FinBIL" # rename FinBIL.x into FinBIL
+trait.dat <- droplevels(trait.dat)
+geno.mat <- as.matrix(trait.dat[2:(ncol(trait.dat)-5)], rownames.force=F) # genotype matrix, i.e. Xs
+response <- as.vector(as.matrix(trait.dat['predPlusResid'], rownames.force=F)) # response vector for sparsenet, i.e. Ys
+registerDoParallel(cores=5) # register parallel backend
+mcoptions <- list(preschedule=FALSE, set.seed=FALSE) # multi-core options
+tmp <- vector("list", length=10) # temp list for storing 1se parameters
+tmp2 <- vector("list", length=10) # temp list for storing min parameters
+nofun <- function(a,b) NULL
+foreach(j=1:10, .options.multicore=mcoptions, .combine='nofun') %dopar% { # redo cross-validation 10 times to get more "stable" tuning parameters
+  cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=9, max.gamma=20, nfolds=6, warm="both")
+  tmp[[j]] <- cv.sp$parms.1se # 1 std. dev. error params.
+  tmp2[[j]] <- cv.sp$parms.min # min CV error params.
+}
+mean.gamma <- mean(unlist(tmp)[seq(1,19,2)]) # mean gamma
+mean.lambda <- mean(unlist(tmp)[seq(2,20,2)]) # mean lambda
+min.cv.lambda <- mean(unlist(tmp2)[seq(2,20,2)]) # min cv lambda  
+cv.lambda.seq <- cv.sp$sparsenet.fit$lambda
+start.lambda.seq <- cv.lambda.seq[which(cv.lambda.seq[] > min.cv.lambda)[length(which(cv.lambda.seq[] > min.cv.lambda))] ] # store lambda value just beyond cv.lambda.min
+# Fit sparsenet one more time with the mean tuning parameters
+lambda.seq <- exp(seq(from=log(start.lambda.seq), to=log(mean.lambda), length=10)) # lambda sequence ending in mean.lambda
+sp.fit <- sparsenet(x=geno.mat, y=response, lambda=lambda.seq, min.gamma=mean.gamma, ngamma=9, warm="both") # full dataset sparsenet fit
+coefs <- sp.fit$coefficients$g9$beta[,1] # save preferred set of coefficients
+coefs <- cbind(bin.stats, coefs) # combine with bin information
+non.zero.coefs <- coefs[coefs$coefs!=0,] # non-zero coefficients
+n.coef <- nrow(non.zero.coefs) # number of non-zero coefficients **this prob. fails b/c it should be nrow, b/c now it's a data.frame
+FT.epi.map <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, start.lambda.seq=start.lambda.seq, sp.fit=sp.fit)
+save(FT.epi.map, "FT.epi.map.Rdata")
 #------
