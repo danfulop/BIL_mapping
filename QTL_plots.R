@@ -203,8 +203,10 @@ plot.epi.map <- function(map.dat, bin.stats, dat.name) {
       head(plot.dat, 20)
       plot.dat
       epi.plot <- ggplot(bin.stats, aes(x=bin1, y=bin2)) + geom_raster()
-      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int901min, xmax=int901max, ymin=int902min, ymax=int902max, fill=coefs), alpha=0.7)
+      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int901min, xmax=int901max, ymin=int902min, ymax=int902max, fill=coefs), alpha=0.4)
       epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int951min, xmax=int951max, ymin=int952min, ymax=int952max, fill=coefs))
+      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int902min, xmax=int902max, ymin=int901min, ymax=int901max, fill=coefs), alpha=0.4)
+      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int952min, xmax=int952max, ymin=int951min, ymax=int951max, fill=coefs))
       epi.plot <- epi.plot + scale_fill_gradient2(low="magenta", mid="black", high="green")
       epi.plot
       
