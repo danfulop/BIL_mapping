@@ -111,6 +111,8 @@ plot.map(FT.map, bin.stats, dat.name="FT")
 # Epistatic plots
 #-----------
 # Modify bin.stats to have doubled information
+load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
+bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
 head(bin.stats)
 summary(bin.stats)
 bin.stats$bin.mid <- as.numeric(as.character(bin.stats$bin.mid))
@@ -122,8 +124,16 @@ bin.stats$bin.mid2 <- bin.stats$bin.mid
 bin.stats$bin.start2 <- bin.stats$bin.start
 bin.stats$bin.end2 <- bin.stats$bin.end
 names(bin.stats)[1:5] <- paste0(names(bin.stats)[1:5], "1")
+head(bin.stats)
+summary(bin.stats)
+
+map.dat=comp.epi.map; dat.name="comp"; i=1
+map.dat=asym.epi.map; dat.name="asym"; i=1
 
 # Function to plot epistatic results
+# Plot all QTL plot in a 2D plane as a heatmap. Plot by bin-number. Make additional tick marks to delimit chromosomes
+# Make 2 versions for each trait, 0.95 and 0.90 correlation plots, to compare them
+#---------
 plot.epi.map <- function(map.dat, bin.stats, dat.name) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
@@ -131,33 +141,49 @@ plot.epi.map <- function(map.dat, bin.stats, dat.name) {
     } else {
       trait.name <- names(map.dat)[i]
       nz.coef <- map.dat[[i]]$non.zero.coefs
-      # separate into additive and epistatic QTL. ID add. by SL2.40, and epi. by //
-      adt.nz.coef <- nz.coef[grep("SL2.40", nz.coef$chr), ]
+      # separate into additive and epistatic QTL
+      adt.nz.coef <- nz.coef[str_count(nz.coef$chr, "ch")==1, ]
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
       # for additive QTL duplicate the information
-      adt.nz.coef$chr <- as.factor(substr(adt.nz.coef$chr,7,10))
-      
+      adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) )
+      adt.nz.coef <- cbind(adt.nz.coef, adt.nz.coef[-6]) # exclude coefs column from 2nd copy
+      names(adt.nz.coef)[c(1:5,7:12)] <- paste0(names(adt.nz.coef)[c(1:5,7:12)], "1")
+      names(adt.nz.coef)[13:ncol(adt.nz.coef)] <- paste0(names(adt.nz.coef)[13:ncol(adt.nz.coef)], "2")
       # for epistatic QTL deconvolute the data into separate chromosome and bin position columns
       epi.nz.coef$bin1 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][1])
-      epi.nz.coef$bin2 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][2])
       epi.nz.coef$chr1 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][1])
-      epi.nz.coef$chr2 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef$bin.mid1 <- laply(epi.nz.coef$bin.mid, function(x) str_split(x, "//")[[1]][1])
-      epi.nz.coef$bin.mid2 <- laply(epi.nz.coef$bin.mid, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef$bin.start1 <- laply(epi.nz.coef$bin.start, function(x) str_split(x, "//")[[1]][1])
-      epi.nz.coef$bin.start2 <- laply(epi.nz.coef$bin.start, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef$bin.end1 <- laply(epi.nz.coef$bin.end, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$int0.951 <- laply(epi.nz.coef$int0.95, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$int0.95.start1 <- laply(epi.nz.coef$int0.95.start, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$int0.95.end1 <- laply(epi.nz.coef$int0.95.end, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$int0.901 <- laply(epi.nz.coef$int0.90, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$int0.90.start1 <- laply(epi.nz.coef$int0.90.start, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$int0.90.end1 <- laply(epi.nz.coef$int0.90.end, function(x) str_split(x, "//")[[1]][1])
+      epi.nz.coef$bin2 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][2])
+      epi.nz.coef$chr2 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$bin.mid2 <- laply(epi.nz.coef$bin.mid, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$bin.start2 <- laply(epi.nz.coef$bin.start, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef$bin.end2 <- laply(epi.nz.coef$bin.end, function(x) str_split(x, "//")[[1]][2])
-      # I can plot by either physical distance or bin-number; bin-number prob. works better for a number of reasons
-      # Make additional tick marks to delimit chromosomes
+      epi.nz.coef$int0.952 <- laply(epi.nz.coef$int0.95, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$int0.95.start2 <- laply(epi.nz.coef$int0.95.start, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$int0.95.end2 <- laply(epi.nz.coef$int0.95.end, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$int0.902 <- laply(epi.nz.coef$int0.90, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$int0.90.start2 <- laply(epi.nz.coef$int0.90.start, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef$int0.90.end2 <- laply(epi.nz.coef$int0.90.end, function(x) str_split(x, "//")[[1]][2])
+      epi.nz.coef <- epi.nz.coef[c(13:17,6,18:ncol(epi.nz.coef))] # eliminate original columns except coefs, and place coefs in its proper order/position
+      epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)] <- lapply(epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)], function(f) as.numeric(as.character(str_trim(f))) )
+      nz.coef <- rbind(adt.nz.coef, epi.nz.coef)
       
-      # plot all QTL plot in a 2D plane as a heatmap
+      
+      
     }
   }
 }
-
 #-----------
-load("/Users/Dani/UCD/BILs/leaf_traits/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
+
+load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
 
 
 
