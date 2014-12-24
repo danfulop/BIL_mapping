@@ -160,7 +160,8 @@ add.cor.epi <- function(map.dat, bin.cor, bin.stats) {
   }
   map.dat
 }
-  
+
+# Add the correlation intervals to the epistatic results
 #----------
 setwd("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results")
 load("comp.epi.map.Rdata")
@@ -175,5 +176,8 @@ save(sym.epi.map, file="sym.epi.map.Rdata")
 load("asym.epi.map.Rdata")
 asym.epi.map <- add.cor.epi(map.dat=asym.epi.map, bin.cor, bin.stats)
 save(asym.epi.map, file="asym.epi.map.Rdata")
-
-
+load("FT.epi.map.Rdata")
+FT.epi.map <- list(FT=FT.epi.map)
+FT.epi.map <- add.cor.epi(map.dat=FT.epi.map, bin.cor, bin.stats)
+save(FT.epi.map, file="FT.epi.map.Rdata")
+#--------
