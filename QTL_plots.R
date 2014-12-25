@@ -59,6 +59,7 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
 #------
 # **ADD bin-number plotting** to this and also epistatic plotting below?
 # Function to generate plots of one whole dataset, with 1 plot per trait
+map.dat=comp.map; dat.name="comp"; i=1
 plot.map <- function(map.dat, bin.stats, dat.name) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
@@ -78,11 +79,15 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
       dat$bin.mid <- as.numeric(as.character(dat$bin.mid)) / 1000000
       dat$bin.start <- as.numeric(as.character(dat$bin.start)) / 1000000
       dat$bin.end <- as.numeric(as.character(dat$bin.end)) / 1000000
+      dat$int0.95.start <- as.numeric(as.character(dat$int0.95.start)) / 1000000
+      dat$int0.95.end <- as.numeric(as.character(dat$int0.95.end)) / 1000000
+      dat$int0.90.start <- as.numeric(as.character(dat$int0.90.start)) / 1000000
+      dat$int0.90.end <- as.numeric(as.character(dat$int0.90.end)) / 1000000
       dat$y.lo <- -5*(max(abs(dat$coefs), na.rm=T)/20)
       dat$y.hi <- -1*(max(abs(dat$coefs), na.rm=T)/20)
       # Plot by physical distance
-      qtl.plot <- ggplot(dat) + geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.lo, ymax=y.hi), color="black", fill="white", size=0.05, alpha=0.5) +
-        geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.lo, ymax=abs(coefs), fill=color)) + facet_grid(chr ~ .) +
+      qtl.plot <- ggplot(dat) + geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.lo, ymax=y.hi), color="black", fill="white", size=0.05) +
+        geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.hi, ymax=abs(coefs), fill=color)) + facet_grid(chr ~ .) +
         theme_bw(8) + labs(y="Absolute magnitude of coefficients", x="Genotypic bin structure in physical distance (Mbp)") +
         scale_fill_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") + theme(legend.position="none")
       ggsave(filename = paste(dat.name, trait.name,"pdf", sep="."), qtl.plot, width=8, height=10.5)
