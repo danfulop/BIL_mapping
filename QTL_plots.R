@@ -78,6 +78,8 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
       dat$bin.mid <- as.numeric(as.character(dat$bin.mid)) / 1000000
       dat$bin.start <- as.numeric(as.character(dat$bin.start)) / 1000000
       dat$bin.end <- as.numeric(as.character(dat$bin.end)) / 1000000
+      dat$y.lo <- -5*(max(abs(dat$coefs), na.rm=T)/20)
+      dat$y.hi <- -1*(max(abs(dat$coefs), na.rm=T)/20)
       # Plot by physical distance
       qtl.plot <- ggplot(dat) + geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.lo, ymax=y.hi), color="black", fill="white", size=0.05, alpha=0.5) +
         geom_rect(aes(xmin=bin.start, xmax=bin.end, ymin=y.lo, ymax=abs(coefs), fill=color)) + facet_grid(chr ~ .) +
