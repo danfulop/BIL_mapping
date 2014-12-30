@@ -1,64 +1,18 @@
 library(stringr)
 library(plyr)
 library(ggplot2)
+library(ggbio)
 library(scam)
 
 load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
-# Discard all markers whose distance to the prior marker is below a certain genetic distance threshold
-# pen12t <- pen12t[pen12t$btw_marker_genD > 0.3, ] # discarded 2381 out of 3572 markers, 1191 markers left
-# pen12t <- droplevels(pen12t)
-# summary(pen12t)
-# nrow(pen12t) # 1191
-# tmp <- lapply(1:nlevels(pen12t$chromosome), function(i) {
-#   chrom.tab <- pen12t[pen12t$chromosome == levels(pen12t$chromosome)[i], ]
-#   chrom.tab$btw_marker_bp <- chrom.tab$position_bp - c(0, chrom.tab$position_bp[1:(nrow(chrom.tab)-1)])
-#   chrom.tab$btw_marker_genD <- chrom.tab$PEN12_Pos - c(0, chrom.tab$PEN12_Pos[1:(nrow(chrom.tab)-1)])
-#   chrom.tab
-# })
-# unlist(lapply(1:12, function(i) nrow(tmp[[i]]) ))
-# tmp <- do.call(rbind, tmp)
-# colnames(tmp) <- colnames(pen12t)
-# tmp <- droplevels(tmp)
-# pen12t <- tmp
-# nrow(pen12t) # 1191
 
-tmp <- lapply(1:nlevels(pen12t$chromosome), function(i) {
-  chrom.tab <- pen12t[pen12t$chromosome == levels(pen12t$chromosome)[i], ]
-  max.bp <- which.max(chrom.tab$btw_marker_bp)
-  chrom.tab[c(1:(max.bp-4),(max.bp+3):nrow(chrom.tab) ), ]
-})
-tmp <- do.call(rbind, tmp)
-colnames(tmp) <- colnames(pen12t)
-tmp <- droplevels(tmp)
-pen12t <- tmp
-nrow(pen12t) # 3500
-
-pen12t
-
-head(pen12t, 50)
-
-# Estimate scam fits for each chromosome
-# Use shape constrained monotonically increasing general additive models to
-# convert physical to genetic distance, using scam package
+# Use shape constrained monotonically increasing general additive models to convert physical to genetic distance, using scam package
 
 fits <- vector('list', 12) # list for storing the scam model fits
 for (i in 1:length(levels(pen12t$chromosome))) {
   chrom <- levels(pen12t$chromosome)[i]
   fit.name <- paste0(chrom,"fit")
-  scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=10), data=pen12t[pen12t$chromosome==chrom,])
-  plot(scamfit, main=paste0(chrom,"_k10") )
-#   scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=15), data=pen12t[pen12t$chromosome==chrom,])
-#   plot(scamfit, main=paste0(chrom,"_k15") )
-#   scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=20), data=pen12t[pen12t$chromosome==chrom,])
-#   plot(scamfit, main=paste0(chrom,"_k20") )
-#   scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=30), data=pen12t[pen12t$chromosome==chrom,]) # use fewer spline params, reduced from 100 to 30
-#   plot(scamfit, main=paste0(chrom,"_k30"))
-#   scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=40), data=pen12t[pen12t$chromosome==chrom,])
-#   plot(scamfit, main=paste0(chrom,"_k40") )
-#   scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=50), data=pen12t[pen12t$chromosome==chrom,])
-#   plot(scamfit, main=paste0(chrom,"_k50"))
-#   scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=100), data=pen12t[pen12t$chromosome==chrom,])
-#   plot(scamfit, main=paste0(chrom,"_k100"))
+  scamfit <- scam(formula=PEN12_Pos ~ 0 + s(position_bp, bs="mpi", k=30), data=pen12t[pen12t$chromosome==chrom,]) # use low k so that small pericentromeric bins show up more
   fits[[i]] <- scamfit
 }
 save(fits, file="/Users/Dani/UCD/BILs/scam_fits.Rdata") # save scam fits' list object
@@ -70,11 +24,7 @@ num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wi
 bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
 
 # predict genetic distance on bin.stats' physical distance coordinates
-# split bin.stats by chromosome
 
-# predict/convert bp to cM for bin.mid, bin.start, and bin.end columns
-# rbind chromosomes
-# convert to data.frame if need be
 chrom <- levels(bin.stats$chr)
 bin.predict <- vector('list', 12) # list of tables for storing the scam model genetic distance predictions
 for (h in 1:length(chrom) ) {
@@ -92,10 +42,9 @@ for (h in 1:length(chrom) ) {
   bin.predict[[h]] <- cbind(bin.mid, bin.start, bin.end) # cbind 3 predictions
   zero.cM <- colwise(function(x, chr.start) x - (chr.start * chr.start/x ) ) # function to proportionally zero the predicted gen. dists.
   bin.predict[[h]][, c(2,4,6)] <- zero.cM(bin.predict[[h]][, c(2,4,6)], chr.start = bin.start$gen.bin.start[1]) # zero the cM predictions
-  # cbind w/ cols 1:2 of chrom.tab, i.e. bin & chr
 }
 bin.predict <- do.call(rbind, bin.predict) # rbind bin.predict's 12 elements
-gen.bin.stats <- cbind(bin.stats[, 1:2], bin.predict) # cbind bin.stats' 1st 2 cols & bin.predict
+gen.bin.stats <- cbind(bin.stats[, 1:2], bin.predict) # cbind bin.stats' 1st 2 cols (i.e. bin & chr) & bin.predict
 save(gen.bin.stats, file="/Users/Dani/UCD/BILs/leaf_traits/gen.bin.stats.Rdata")
 load("/Users/Dani/UCD/BILs/leaf_traits/gen.bin.stats.Rdata")
 
@@ -104,7 +53,6 @@ load("/Users/Dani/UCD/BILs/leaf_traits/gen.bin.stats.Rdata")
 setwd("/Users/Dani/UCD/BILs/leaf_traits/genDist_additive_qtl_plots")
 
 # Function to generate genetic distance plots of one whole dataset, with 1 plot per trait
-map.dat=comp.map; dat.name="comp"; i=1; bin.stats=gen.bin.stats
 plot.map <- function(map.dat, bin.stats, dat.name) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
@@ -132,18 +80,18 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
       dat <- merge(gen.bin.stats, nz.coef, all.x=T)
       dat$y.lo <- -5*(max(abs(dat$coefs), na.rm=T)/20)
       dat$y.hi <- -1*(max(abs(dat$coefs), na.rm=T)/20)
-      # Plot by genetic distance
-      # ** MOD plot calls and run! **
       qtl.plot.90 <- ggplot(dat) + geom_rect(aes(xmin=gen.bin.start, xmax=gen.bin.end, ymin=y.lo, ymax=y.hi), color="black", fill="white", size=0.1) +
         geom_rect(aes(xmin=gen.int0.90.start, xmax=gen.int0.90.end, ymin=y.hi, ymax=abs(coefs), fill=color), alpha=0.25) +
-        geom_rect(aes(xmin=gen.bin.start, xmax=gen.bin.end, ymin=y.hi, ymax=abs(coefs), fill=color)) + facet_grid(chr ~ .) +
+        geom_rect(aes(xmin=gen.bin.start, xmax=gen.bin.end, ymin=y.hi, ymax=abs(coefs), fill=color, color=color), size=0.05) + facet_grid(chr ~ .) +
         theme_bw(12) + labs(y="Absolute magnitude of coefficients", x="Genotypic bin structure in genetic distance (cM)") +
+        scale_color_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") +
         scale_fill_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") + theme(legend.position="none")
       ggsave(filename = paste("genDist", dat.name, trait.name, "90corr","pdf", sep="."), qtl.plot.90, width=8, height=10.5)
       qtl.plot.95 <- ggplot(dat) + geom_rect(aes(xmin=gen.bin.start, xmax=gen.bin.end, ymin=y.lo, ymax=y.hi), color="black", fill="white", size=0.1) +
         geom_rect(aes(xmin=gen.int0.95.start, xmax=gen.int0.95.end, ymin=y.hi, ymax=abs(coefs), fill=color), alpha=0.25) +
-        geom_rect(aes(xmin=gen.bin.start, xmax=gen.bin.end, ymin=y.hi, ymax=abs(coefs), fill=color)) + facet_grid(chr ~ .) +
+        geom_rect(aes(xmin=gen.bin.start, xmax=gen.bin.end, ymin=y.hi, ymax=abs(coefs), fill=color, color=color), size=0.05) + facet_grid(chr ~ .) +
         theme_bw(12) + labs(y="Absolute magnitude of coefficients", x="Genotypic bin structure in genetic distance (cM)") +
+        scale_color_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") +
         scale_fill_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend") + theme(legend.position="none")
       ggsave(filename = paste("genDist", dat.name, trait.name, "95corr","pdf", sep="."), qtl.plot.95, width=8, height=10.5)
     }
@@ -151,16 +99,16 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
 }
 
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/comp.map.Rdata")
-plot.map(comp.map, bin.stats, dat.name="comp")
+plot.map(comp.map, gen.bin.stats, dat.name="comp")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/circ.map.Rdata")
-plot.map(circ.map, bin.stats, dat.name="circ")
+plot.map(circ.map, gen.bin.stats, dat.name="circ")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/sym.map.Rdata")
-plot.map(sym.map, bin.stats, dat.name="sym")
+plot.map(sym.map, gen.bin.stats, dat.name="sym")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/asym.map.Rdata")
-plot.map(asym.map, bin.stats, dat.name="asym")
+plot.map(asym.map, gen.bin.stats, dat.name="asym")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
 #FT.map <- list(FT=FT.map) # modify FT results so that they fit the structure of the plotting function, i.e. list with sublist(s)
-plot.map(FT.map, bin.stats, dat.name="FT")
+plot.map(FT.map, gen.bin.stats, dat.name="FT")
 
 #---------
 
