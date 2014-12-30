@@ -1,7 +1,7 @@
 library(stringr)
 library(plyr)
 library(ggplot2)
-library(ggbio)
+library(circlize)
 library(scam)
 
 load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
@@ -222,11 +222,10 @@ plot.map(FT.map, bin.stats, dat.name="FT")
 # Modify bin.stats to have doubled information
 load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
 bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
-head(bin.stats)
-summary(bin.stats)
-bin.stats$bin.mid <- as.numeric(as.character(bin.stats$bin.mid))
-bin.stats$bin.start <- as.numeric(as.character(bin.stats$bin.start))
-bin.stats$bin.end <- as.numeric(as.character(bin.stats$bin.end))
+num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wise function to trim factor columns of white space and convert them to numeric. Coercion to char isn't needed since trimming does that already
+bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
+# head(bin.stats)
+# summary(bin.stats)
 bin.stats$bin2 <- bin.stats$bin
 bin.stats$chr2 <- bin.stats$chr
 bin.stats$bin.mid2 <- bin.stats$bin.mid
@@ -235,7 +234,29 @@ bin.stats$bin.end2 <- bin.stats$bin.end
 names(bin.stats)[1:5] <- paste0(names(bin.stats)[1:5], "1")
 head(bin.stats)
 summary(bin.stats)
+doubled.bin.stats <- bin.stats
+load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
+bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
+bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
+# create a data.frame with chromosome start and end info. to initialize the circos plot
+circ.init <- lapply(1:nlevels(bin.stats$chr), function(i) {
+  chr <- levels(bin.stats$chr)[i]
+  chr.stats <- bin.stats[bin.stats$chr==chr, ]
+  start <- chr.stats$bin.start[1]
+  end <- chr.stats$bin.end[nrow(chr.stats)]
+  bin.start <- as.character(chr.stats$bin[1])
+  bin.end <- as.character(chr.stats$bin[nrow(chr.stats)])
+  cbind(c(chr, chr), c(start, end), c(bin.start, bin.end) )
+} )
+circ.init <- data.frame(do.call(rbind, circ.init), stringsAsFactors = FALSE)
+colnames(circ.init) <- c("chr", "bp", "bin")
+circ.init$chr <- as.factor(circ.init$chr)
+circ.init$bin <- as.factor(circ.init$bin)
+circ.init$bp <- as.numeric(circ.init$bp)
+#summary(circ.init)
 
+
+load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
 map.dat=comp.epi.map; dat.name="comp"; i=1
 map.dat=asym.epi.map; dat.name="asym"; i=1
 
@@ -243,7 +264,7 @@ map.dat=asym.epi.map; dat.name="asym"; i=1
 # Plot all QTL plot in a 2D plane as a heatmap. Plot by bin-number. Make additional tick marks to delimit chromosomes
 # Make 2 versions for each trait, 0.95 and 0.90 correlation plots, to compare them
 #---------
-plot.epi.map <- function(map.dat, bin.stats, dat.name) {
+plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
@@ -254,10 +275,12 @@ plot.epi.map <- function(map.dat, bin.stats, dat.name) {
       adt.nz.coef <- nz.coef[str_count(nz.coef$chr, "ch")==1, ]
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
       # for additive QTL duplicate the information
-      adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) )
-      adt.nz.coef <- cbind(adt.nz.coef, adt.nz.coef[-6]) # exclude coefs column from 2nd copy
-      names(adt.nz.coef)[c(1:5,7:12)] <- paste0(names(adt.nz.coef)[c(1:5,7:12)], "1")
-      names(adt.nz.coef)[13:ncol(adt.nz.coef)] <- paste0(names(adt.nz.coef)[13:ncol(adt.nz.coef)], "2")
+      adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) ) # trim and coerce to numeric certain columns
+      #
+#       adt.nz.coef <- cbind(adt.nz.coef, adt.nz.coef[-6]) # exclude coefs column from 2nd copy
+#       names(adt.nz.coef)[c(1:5,7:12)] <- paste0(names(adt.nz.coef)[c(1:5,7:12)], "1")
+#       names(adt.nz.coef)[13:ncol(adt.nz.coef)] <- paste0(names(adt.nz.coef)[13:ncol(adt.nz.coef)], "2")
+      #
       # for epistatic QTL deconvolute the data into separate chromosome and bin position columns
       epi.nz.coef$bin1 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][1])
       epi.nz.coef$chr1 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][1])
@@ -283,52 +306,48 @@ plot.epi.map <- function(map.dat, bin.stats, dat.name) {
       epi.nz.coef$int0.90.end2 <- laply(epi.nz.coef$int0.90.end, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef <- epi.nz.coef[c(13:17,6,18:ncol(epi.nz.coef))] # eliminate original columns except coefs, and place coefs in its proper order/position
       epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)] <- lapply(epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)], function(f) as.numeric(as.character(str_trim(f))) )
-      # I may need to split the int0.95 and int0.90 labels into first and last bins
-      # What I actually need is 1 dataset for each set of data to be plotted, as many as 3: selected bin, 0.95 interval, and 0.90 interval
-      # ...and where all the pertinent bins have the correct coefficient value
-      # at least that's the way to make it work with geom_raster()
-      # Perhaps geom_tile() is more flexible...
-      # I could use geom_tile() with a free scale ...and then use the coordinates instead of bin-numbers
-      # OR, I could used geom_rect instead w/ free scale and w/ coordinates or bins
-      # ** I may need a matrix of points!! **
-      # Use BIN-number, and not full BIN label for axes
-      nz.coef <- rbind(adt.nz.coef, epi.nz.coef)
-      head(nz.coef)
-      nz.coef$int951min <- laply(nz.coef$int0.951, function(x) str_split(x, ":")[[1]][1])
-      nz.coef$int951max <- laply(nz.coef$int0.951, function(x) str_split(x, ":")[[1]][2])
-      nz.coef$int901min <- laply(nz.coef$int0.901, function(x) str_split(x, ":")[[1]][1])
-      nz.coef$int901max <- laply(nz.coef$int0.901, function(x) str_split(x, ":")[[1]][2])
-      nz.coef$int952min <- laply(nz.coef$int0.952, function(x) str_split(x, ":")[[1]][1])
-      nz.coef$int952max <- laply(nz.coef$int0.952, function(x) str_split(x, ":")[[1]][2])
-      nz.coef$int902min <- laply(nz.coef$int0.902, function(x) str_split(x, ":")[[1]][1])
-      nz.coef$int902max <- laply(nz.coef$int0.902, function(x) str_split(x, ":")[[1]][2])
-      head(nz.coef)
+      #
+#       nz.coef <- rbind(adt.nz.coef, epi.nz.coef)
+      #
+      epi.nz.coef$int951min <- laply(epi.nz.coef$int0.951, function(x) str_split(x, ":")[[1]][1])
+      epi.nz.coef$int951max <- laply(epi.nz.coef$int0.951, function(x) str_split(x, ":")[[1]][2])
+      epi.nz.coef$int901min <- laply(epi.nz.coef$int0.901, function(x) str_split(x, ":")[[1]][1])
+      epi.nz.coef$int901max <- laply(epi.nz.coef$int0.901, function(x) str_split(x, ":")[[1]][2])
+      epi.nz.coef$int952min <- laply(epi.nz.coef$int0.952, function(x) str_split(x, ":")[[1]][1])
+      epi.nz.coef$int952max <- laply(epi.nz.coef$int0.952, function(x) str_split(x, ":")[[1]][2])
+      epi.nz.coef$int902min <- laply(epi.nz.coef$int0.902, function(x) str_split(x, ":")[[1]][1])
+      epi.nz.coef$int902max <- laply(epi.nz.coef$int0.902, function(x) str_split(x, ":")[[1]][2])
+      #
       # save nz.coef, just b/c it's a convenient view of the data
-      
-      plot.dat <- merge(nz.coef, bin.stats) #, all=TRUE) # merge nz.coef with doubled bin.stats
-      plot.dat$coefs[is.na(plot.dat$coefs)] <- 0 # make all NA coefficients == 0
-      bin.stats.p <- bin.stats
-      bin.stats.p$coefs <- NA
-      head(plot.dat, 20)
-      plot.dat
-      epi.plot <- ggplot(bin.stats, aes(x=bin1, y=bin2)) + geom_raster()
-      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int901min, xmax=int901max, ymin=int902min, ymax=int902max, fill=coefs), alpha=0.4)
-      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int951min, xmax=int951max, ymin=int952min, ymax=int952max, fill=coefs))
-      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int902min, xmax=int902max, ymin=int901min, ymax=int901max, fill=coefs), alpha=0.4)
-      epi.plot <- epi.plot + geom_rect(data=nz.coef, aes(xmin=int952min, xmax=int952max, ymin=int951min, ymax=int951max, fill=coefs))
-      epi.plot <- epi.plot + scale_fill_gradient2(low="magenta", mid="black", high="green")
-      epi.plot
-      
-      str_split(nz.coef[1, 'int0.951'], ":")[[1]][1]
-      str_split(nz.coef[1, 'int0.951'], ":")[[1]][2]
-      # 1) lay down the "structure" w/ geom_raster or geom_tile
-      # 2) then use geom_rect to draw 0.90 and 0.95 intervals in 2D
+#       plot.dat <- merge(nz.coef, doubled.bin.stats, all=TRUE) # merge nz.coef with doubled bin.stats
+#       head(plot.dat, 20)
+      #
+      bin.bed <- with(bin.stats, data.frame(chr=chr, start=bin.start, end=bin.end) ) # BED-like data.frame specifying BIN structure
+      adt.nz.coef$color[adt.nz.coef$coefs > 0] <- "green" # adding a color column may be "illegal"
+      adt.nz.coef$color[adt.nz.coef$coefs < 0] <- "magenta"
+      adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=bin.start, end=bin.end, coefs=coefs, color=color) )
+      adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.95.start, end=int0.95.end, coefs=coefs, color=color) )
+      adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.90.start, end=int0.90.end, coefs=coefs, color=color) )
+      #
+      #
+      par(mar = c(1, 1, 1, 1), lwd = 0.1, cex = 0.7) # investigate later whether all these params. are ideal
+      circos.par("start.degree" = 90)
+#       circos.par("track.height" = 0.1)
+      circos.initialize(factors = circ.init$chr, x = circ.init$bp) # I could use a sector.width vector here to appropriately scale the chromosome widths
+      #
+      # use circos.link to draw the epistatic QTL, and use a colorBrewer function to specify the color (within the range) according to the coefficient's value
+      # OR use colorRamp2() for specifying the color scale
+      # chordDiagram with NAs is another option for the epistatic QTL      
+      circos.clear()
+      generateRandomBed(nr=20, nc=2) # example BED-like data.frame for circlize
+      # ** USE circos.genomicTrackPlotRegion in **stack mode** to enable drawing a semi-transparent correlation interval and the QTL itself on top
+      # Close PDF device
     }
   }
 }
 #-----------
 
-load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
+
 
 
 
