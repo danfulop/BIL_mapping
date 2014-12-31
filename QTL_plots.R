@@ -112,53 +112,6 @@ plot.map(FT.map, gen.bin.stats, dat.name="FT")
 
 #---------
 
-# DEPRECATED Function to generate plots of one whole dataset, with 1 plot per chromosome
-#------
-plot.map <- function(map.dat, bin.stats, dat.name) {
-  for(i in 1:length(map.dat) ) {
-    if(map.dat[[i]]$n.coef==0) {
-      next
-    } else {
-      trait.name <- names(map.dat)[i]
-      nz.coef <- map.dat[[i]]$non.zero.coefs
-      nz.coef$chr <- as.factor(substr(nz.coef$chr,7,10))
-      ch.lev <- levels(nz.coef$chr)
-      n.ch.lev <- length(ch.lev)
-      max.coef <- max(nz.coef$coefs)
-      min.coef <- min(nz.coef$coefs)
-      nz.coef$color <- NULL
-      nz.coef$color[nz.coef$coefs < 0] <- "magenta"
-      nz.coef$color[nz.coef$coefs > 0] <- "green"
-      for(j in 1:n.ch.lev) {
-        chr.stats <- bin.stats[bin.stats$chr==ch.lev[j],]
-        chr.coef <- nz.coef[nz.coef$chr==ch.lev[j],]
-        chr.dat <- merge(chr.stats, chr.coef, all.x=T)
-        chr.dat$bin.mid <- as.numeric(as.character(chr.dat$bin.mid))
-        chr.dat$bin.start <- as.numeric(as.character(chr.dat$bin.start))
-        chr.dat$bin.end <- as.numeric(as.character(chr.dat$bin.end))
-        chr.dat$y.lo <- -1.5*(max(abs(chr.dat$coefs), na.rm=T)/20)
-        chr.dat$y.hi <- -0.5*(max(abs(chr.dat$coefs), na.rm=T)/20)
-        # Plot by physical distance
-        qtl.plot <- ggplot(chr.dat) + geom_segment(aes(y=y.lo, yend=y.hi, x=bin.start, xend=bin.start), size=0.1) +
-          geom_segment(aes(y=y.lo, yend=y.hi, x=bin.end, xend=bin.end), size=0.1) + 
-          geom_segment(aes(y=y.lo, yend=y.lo, x=min(bin.start), xend=max(bin.end) ) , size=0.1) +
-          geom_segment(aes(y=y.hi, yend=y.hi, x=min(bin.start), xend=max(bin.end) ) , size=0.1) +
-          geom_point(aes(x=bin.mid, y=abs(coefs), color=color), size=3) + 
-          theme_bw(16) + labs(y="Absolute magnitude of coefficients", x="Physical distance (bp)")
-        if ( all(chr.dat$coefs > 0, na.rm=TRUE) ) {
-          qtl.plot <- qtl.plot + scale_color_identity("Sign of coefficients", labels=c("positive"), guide="legend")
-        } else if ( all(chr.dat$coefs < 0, na.rm=TRUE) ) {
-          qtl.plot <- qtl.plot + scale_color_identity("Sign of coefficients", labels=c("negative"), guide="legend")
-        } else {
-          qtl.plot <- qtl.plot + scale_color_identity("Sign of coefficients", labels=c("positive", "negative"), guide="legend")
-        }
-        ggsave(filename = paste(dat.name, trait.name, ch.lev[j],"pdf", sep="."), qtl.plot, width=15, height=7.5)
-      }
-    }
-  }
-}
-#------
-
 # Function to generate physical distance plots of one whole dataset, with 1 plot per trait
 map.dat=comp.map; dat.name="comp"; i=1
 plot.map <- function(map.dat, bin.stats, dat.name) {
