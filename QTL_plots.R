@@ -235,8 +235,10 @@ names(bin.stats)[1:5] <- paste0(names(bin.stats)[1:5], "1")
 head(bin.stats)
 summary(bin.stats)
 doubled.bin.stats <- bin.stats
+
 load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
 bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
+num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) 
 bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
 # create a data.frame with chromosome start and end info. to initialize the circos plot
 circ.init <- lapply(1:nlevels(bin.stats$chr), function(i) {
@@ -244,15 +246,13 @@ circ.init <- lapply(1:nlevels(bin.stats$chr), function(i) {
   chr.stats <- bin.stats[bin.stats$chr==chr, ]
   start <- chr.stats$bin.start[1]
   end <- chr.stats$bin.end[nrow(chr.stats)]
-  bin.start <- as.character(chr.stats$bin[1])
-  bin.end <- as.character(chr.stats$bin[nrow(chr.stats)])
-  cbind(c(chr, chr), c(start, end), c(bin.start, bin.end) )
+  c(chr, start, end)
 } )
 circ.init <- data.frame(do.call(rbind, circ.init), stringsAsFactors = FALSE)
-colnames(circ.init) <- c("chr", "bp", "bin")
+colnames(circ.init) <- c("chr", "start", "end")
 circ.init$chr <- as.factor(circ.init$chr)
-circ.init$bin <- as.factor(circ.init$bin)
-circ.init$bp <- as.numeric(circ.init$bp)
+circ.init$start <- as.numeric(circ.init$start)
+circ.init$end <- as.numeric(circ.init$end)
 #summary(circ.init)
 
 
@@ -323,23 +323,61 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
 #       head(plot.dat, 20)
       #
       bin.bed <- with(bin.stats, data.frame(chr=chr, start=bin.start, end=bin.end) ) # BED-like data.frame specifying BIN structure
-      adt.nz.coef$color[adt.nz.coef$coefs > 0] <- "green" # adding a color column may be "illegal"
-      adt.nz.coef$color[adt.nz.coef$coefs < 0] <- "magenta"
+      adt.nz.coef$color[adt.nz.coef$coefs > 0] <- 1 # adding a color column may be "illegal"
+      adt.nz.coef$color[adt.nz.coef$coefs < 0] <- -1
+      adt.nz.coef$coefs <- abs(adt.nz.coef$coefs)
       adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=bin.start, end=bin.end, coefs=coefs, color=color) )
+      adt.bed$transparency <- 0
       adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.95.start, end=int0.95.end, coefs=coefs, color=color) )
+      adt.int95.bed$transparency <- 0.75
       adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.90.start, end=int0.90.end, coefs=coefs, color=color) )
+      adt.int90.bed$transparency <- 0.75
+      adt.dat.list95 <- list(adt.int95.bed, adt.bed)
+      adt.dat.list90 <- list(adt.int90.bed, adt.bed)
+      adt.ylim <- c(0, max(adt.nz.coef$coefs) )
       #
       #
-      par(mar = c(1, 1, 1, 1), lwd = 0.1, cex = 0.7) # investigate later whether all these params. are ideal
-      circos.par("start.degree" = 90)
-#       circos.par("track.height" = 0.1)
-      circos.initialize(factors = circ.init$chr, x = circ.init$bp) # I could use a sector.width vector here to appropriately scale the chromosome widths
-      #
+      par(mar = c(1, 1, 1, 1) ) #, lwd = 0.5, cex = 1) # investigate later whether all these params. are ideal
+      circos.par("start.degree" = 90) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
+      circos.genomicInitialize(circ.init, sector.width=circ.init$end )
+      # chromosome bounding box can be customized w.r.t. background and border, see circos.trackPlotRegion()      
+      circos.genomicTrackPlotRegion(data = adt.dat.list90, ylim=adt.ylim, panel.fun = function(region, value, ...) {      
+      #circos.genomicTrackPlotRegion(data = adt.bed, ylim=adt.ylim, panel.fun = function(region, value, ...) {
+        i = getI(...)
+#         print(get.cell.meta.data("sector.index"))
+#         print(get.cell.meta.data("xlim"))
+#         print(get.cell.meta.data("ylim"))
+#         print(region)
+#         print(value)
+        if (i == 1) {
+          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0.75 )
+        } else {
+          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
+        }
+        circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
+      }, bg.col="gray87", bg.border=NA ) 
+      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,0.25), panel.fun = function(region, value, ...) {
+        circos.genomicRect(region, value, col="white", border="black", ybottom=0, ytop=0.25, lwd=0.5, ...)
+      }, bg.border=NA )  
+      circos.par("cell.padding") # [1] 0.02 0.00 0.02 0.00 ; I guess this is 2 degrees on the left and right and 0 something (% radius?) on top and bottom
+      circos.par("track.height") # [1] 0.2 , i.e. 20% of radius
+      circos.par("track.margin") # [1] 0.01 0.01
+      circos.info()
+# TO DO
+# 1) reduce space between tracks
+# 2) reduce cell padding
+# 3) add y-axis scale lines in white
+# 4) implement circos.links for epistatic QTLs
+# 5) adjust track size with track height in circos.genomicTrackPlotRegion()
+# 6) increase size of the chromosome distance scale text and tick marks
+# 7) change to genetic distance
+            
+#
       # use circos.link to draw the epistatic QTL, and use a colorBrewer function to specify the color (within the range) according to the coefficient's value
       # OR use colorRamp2() for specifying the color scale
       # chordDiagram with NAs is another option for the epistatic QTL      
       circos.clear()
-      generateRandomBed(nr=20, nc=2) # example BED-like data.frame for circlize
+      #
       # ** USE circos.genomicTrackPlotRegion in **stack mode** to enable drawing a semi-transparent correlation interval and the QTL itself on top
       # Close PDF device
     }
