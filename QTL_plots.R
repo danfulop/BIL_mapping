@@ -264,6 +264,14 @@ map.dat=asym.epi.map; dat.name="asym"; i=1
 # Plot all QTL plot in a 2D plane as a heatmap. Plot by bin-number. Make additional tick marks to delimit chromosomes
 # Make 2 versions for each trait, 0.95 and 0.90 correlation plots, to compare them
 #---------
+# TO DO
+# 1) reduce space between tracks => DONE
+# 2) reduce cell padding => DONE
+# 3) add y-axis scale lines in white
+# 4) implement circos.links for epistatic QTLs
+# 5) adjust track size with track height in circos.genomicTrackPlotRegion() => DONE
+# 6) increase size of the chromosome distance scale text and tick marks
+# 7) change to genetic distance
 plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
@@ -276,11 +284,6 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
       # for additive QTL duplicate the information
       adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) ) # trim and coerce to numeric certain columns
-      #
-#       adt.nz.coef <- cbind(adt.nz.coef, adt.nz.coef[-6]) # exclude coefs column from 2nd copy
-#       names(adt.nz.coef)[c(1:5,7:12)] <- paste0(names(adt.nz.coef)[c(1:5,7:12)], "1")
-#       names(adt.nz.coef)[13:ncol(adt.nz.coef)] <- paste0(names(adt.nz.coef)[13:ncol(adt.nz.coef)], "2")
-      #
       # for epistatic QTL deconvolute the data into separate chromosome and bin position columns
       epi.nz.coef$bin1 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][1])
       epi.nz.coef$chr1 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][1])
@@ -306,9 +309,6 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
       epi.nz.coef$int0.90.end2 <- laply(epi.nz.coef$int0.90.end, function(x) str_split(x, "//")[[1]][2])
       epi.nz.coef <- epi.nz.coef[c(13:17,6,18:ncol(epi.nz.coef))] # eliminate original columns except coefs, and place coefs in its proper order/position
       epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)] <- lapply(epi.nz.coef[, c(3:5,8,9,11,12,15:17,19,20,22,23)], function(f) as.numeric(as.character(str_trim(f))) )
-      #
-#       nz.coef <- rbind(adt.nz.coef, epi.nz.coef)
-      #
       epi.nz.coef$int951min <- laply(epi.nz.coef$int0.951, function(x) str_split(x, ":")[[1]][1])
       epi.nz.coef$int951max <- laply(epi.nz.coef$int0.951, function(x) str_split(x, ":")[[1]][2])
       epi.nz.coef$int901min <- laply(epi.nz.coef$int0.901, function(x) str_split(x, ":")[[1]][1])
@@ -317,11 +317,13 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
       epi.nz.coef$int952max <- laply(epi.nz.coef$int0.952, function(x) str_split(x, ":")[[1]][2])
       epi.nz.coef$int902min <- laply(epi.nz.coef$int0.902, function(x) str_split(x, ":")[[1]][1])
       epi.nz.coef$int902max <- laply(epi.nz.coef$int0.902, function(x) str_split(x, ":")[[1]][2])
-      #
-      # save nz.coef, just b/c it's a convenient view of the data
-#       plot.dat <- merge(nz.coef, doubled.bin.stats, all=TRUE) # merge nz.coef with doubled bin.stats
-#       head(plot.dat, 20)
-      #
+      # make 2 bed-like files for the links/chords for epistatic QTLs, ditto for each of the correlation intervals
+      epi1.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=bin.start1, end=bin.end1, coefs=coefs) )
+      epi2.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=bin.start2, end=bin.end2, coefs=coefs) )
+      epi951.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=int0.95.start1, end=int0.95.end1, coefs=coefs) )
+      epi952.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.95.start2, end=int0.95.end2, coefs=coefs) )
+      epi901.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=int0.90.start1, end=int0.90.end1, coefs=coefs) )
+      epi902.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.90.start2, end=int0.90.end2, coefs=coefs) )
       bin.bed <- with(bin.stats, data.frame(chr=chr, start=bin.start, end=bin.end) ) # BED-like data.frame specifying BIN structure
       adt.nz.coef$color[adt.nz.coef$coefs > 0] <- 1 # adding a color column may be "illegal"
       adt.nz.coef$color[adt.nz.coef$coefs < 0] <- -1
@@ -335,56 +337,47 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
       adt.dat.list95 <- list(adt.int95.bed, adt.bed)
       adt.dat.list90 <- list(adt.int90.bed, adt.bed)
       adt.ylim <- c(0, max(adt.nz.coef$coefs) )
-      #
-      #
+      # start plotting
       par(mar = c(1, 1, 1, 1) ) #, lwd = 0.5, cex = 1) # investigate later whether all these params. are ideal
-      circos.par("start.degree" = 90) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
+      circos.par("start.degree" = 90, "track.margin"=c(0.005,0)) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
       circos.genomicInitialize(circ.init, sector.width=circ.init$end )
       # chromosome bounding box can be customized w.r.t. background and border, see circos.trackPlotRegion()      
-      circos.genomicTrackPlotRegion(data = adt.dat.list90, ylim=adt.ylim, panel.fun = function(region, value, ...) {      
-      #circos.genomicTrackPlotRegion(data = adt.bed, ylim=adt.ylim, panel.fun = function(region, value, ...) {
-        i = getI(...)
-#         print(get.cell.meta.data("sector.index"))
-#         print(get.cell.meta.data("xlim"))
-#         print(get.cell.meta.data("ylim"))
-#         print(region)
-#         print(value)
-        if (i == 1) {
+      circos.genomicTrackPlotRegion(data = adt.dat.list90, track.height=0.28, cell.padding=c(0.01,0,0.01,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
+        i = getI(...) # assign the plotting iteration through the data list's elemetns to a counter
+        if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
           sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0.75 )
         } else {
           sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
         }
         circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
       }, bg.col="gray87", bg.border=NA ) 
-      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,0.25), panel.fun = function(region, value, ...) {
-        circos.genomicRect(region, value, col="white", border="black", ybottom=0, ytop=0.25, lwd=0.5, ...)
-      }, bg.border=NA )  
-      circos.par("cell.padding") # [1] 0.02 0.00 0.02 0.00 ; I guess this is 2 degrees on the left and right and 0 something (% radius?) on top and bottom
-      circos.par("track.height") # [1] 0.2 , i.e. 20% of radius
-      circos.par("track.margin") # [1] 0.01 0.01
-      circos.info()
-# TO DO
-# 1) reduce space between tracks
-# 2) reduce cell padding
-# 3) add y-axis scale lines in white
-# 4) implement circos.links for epistatic QTLs
-# 5) adjust track size with track height in circos.genomicTrackPlotRegion()
-# 6) increase size of the chromosome distance scale text and tick marks
-# 7) change to genetic distance
-            
-#
-      # use circos.link to draw the epistatic QTL, and use a colorBrewer function to specify the color (within the range) according to the coefficient's value
-      # OR use colorRamp2() for specifying the color scale
-      # chordDiagram with NAs is another option for the epistatic QTL      
+      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=0.07, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
+        circos.genomicRect(region, value, col="white", border="black", ybottom=0, ytop=1, lwd=0.5, ...)
+      }, bg.border=NA )
+      col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=0.75 )
+      col.vector <- col.fun(epi.nz.coef$coefs)
+      circos.genomicLink(epi901.bed, epi902.bed, col=col.vector, border=col.vector, lwd=0.5)
+      col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=0 )
+      col.vector <- col.fun(epi.nz.coef$coefs)
+      circos.genomicLink(epi1.bed, epi2.bed, col=col.vector, border=col.vector, lwd=0.5)
       circos.clear()
-      #
-      # ** USE circos.genomicTrackPlotRegion in **stack mode** to enable drawing a semi-transparent correlation interval and the QTL itself on top
-      # Close PDF device
     }
   }
 }
 #-----------
+# Useful for adjusting circos plotting parameters
+# circos.par("cell.padding") # [1] 0.02 0.00 0.02 0.00; bottom, left, top, right; 1st & 3rd are % radius, 2nd & 4th are degrees
+# circos.par("track.height") # [1] 0.2 , i.e. 20% of radius
+# circos.par("track.margin") # [1] 0.01 0.01 # bottom and top margins, left and right are controlled by gap.degree
+# circos.par("gap.degree") # [1] 1
+# circos.info()
 
+# Useful for debugging inside trackPlotRegions
+#         print(get.cell.meta.data("sector.index"))
+#         print(get.cell.meta.data("xlim"))
+#         print(get.cell.meta.data("ylim"))
+#         print(region)
+#         print(value)
 
 
 
