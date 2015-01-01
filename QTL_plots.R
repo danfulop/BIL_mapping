@@ -4,10 +4,10 @@ library(ggplot2)
 library(circlize)
 library(scam)
 
-# load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
-# 
-# # Use shape constrained monotonically increasing general additive models to convert physical to genetic distance, using scam package
-# 
+load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
+
+# Use shape constrained monotonically increasing general additive models to convert physical to genetic distance, using scam package
+
 # fits <- vector('list', 12) # list for storing the scam model fits
 # for (i in 1:length(levels(pen12t$chromosome))) {
 #   chrom <- levels(pen12t$chromosome)[i]
@@ -18,12 +18,12 @@ library(scam)
 # save(fits, file="/Users/Dani/UCD/BILs/scam_fits.Rdata") # save scam fits' list object
 load("/Users/Dani/UCD/BILs/scam_fits.Rdata")
 
-# load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
-# bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
-# num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wise function to trim factor columns of white space and convert them to numeric. Coercion to char isn't needed since trimming does that already
-# bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
+load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
+bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
+num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wise function to trim factor columns of white space and convert them to numeric. Coercion to char isn't needed since trimming does that already
+bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
 
-# # predict genetic distance on bin.stats' physical distance coordinates
+# predict genetic distance on bin.stats' physical distance coordinates
 # chrom <- levels(bin.stats$chr)
 # bin.predict <- vector('list', 12) # list of tables for storing the scam model genetic distance predictions
 # for (h in 1:length(chrom) ) {
@@ -41,6 +41,9 @@ load("/Users/Dani/UCD/BILs/scam_fits.Rdata")
 #   bin.predict[[h]] <- cbind(bin.mid, bin.start, bin.end) # cbind 3 predictions
 #   zero.cM <- colwise(function(x, chr.start) x - (chr.start * chr.start/x ) ) # function to proportionally zero the predicted gen. dists.
 #   bin.predict[[h]][, c(2,4,6)] <- zero.cM(bin.predict[[h]][, c(2,4,6)], chr.start = bin.start$gen.bin.start[1]) # zero the cM predictions
+#   if(bin.predict[[h]][1, 4] != 0) { # re-check zeroing of genDist b/c of numerical issues that sometimes result in a tiny negative or positive value !=0 as the start of the chromosome
+#     bin.predict[[h]][, c(2,4,6)] <- bin.predict[[h]][, c(2,4,6)] - bin.predict[[h]][1, 4]
+#   } else next
 # }
 # bin.predict <- do.call(rbind, bin.predict) # rbind bin.predict's 12 elements
 # gen.bin.stats <- cbind(bin.stats[, 1:2], bin.predict) # cbind bin.stats' 1st 2 cols (i.e. bin & chr) & bin.predict
@@ -50,7 +53,6 @@ load("/Users/Dani/UCD/BILs/leaf_traits/gen.bin.stats.Rdata")
 # Additive plots
 #-----------
 setwd("/Users/Dani/UCD/BILs/leaf_traits/genDist_additive_qtl_plots")
-
 # Function to generate genetic distance plots of one whole dataset, with 1 plot per trait
 plot.map <- function(map.dat, bin.stats, dat.name) {
   for(i in 1:length(map.dat) ) {
@@ -96,7 +98,6 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
     }
   }
 }
-
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/comp.map.Rdata")
 plot.map(comp.map, gen.bin.stats, dat.name="comp")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/circ.map.Rdata")
@@ -108,10 +109,10 @@ plot.map(asym.map, gen.bin.stats, dat.name="asym")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
 #FT.map <- list(FT=FT.map) # modify FT results so that they fit the structure of the plotting function, i.e. list with sublist(s)
 plot.map(FT.map, gen.bin.stats, dat.name="FT")
-
 #---------
 
 # Function to generate physical distance plots of one whole dataset, with 1 plot per trait
+#-----------
 map.dat=comp.map; dat.name="comp"; i=1
 plot.map <- function(map.dat, bin.stats, dat.name) {
   for(i in 1:length(map.dat) ) {
@@ -154,7 +155,6 @@ plot.map <- function(map.dat, bin.stats, dat.name) {
     }
   }
 }
-
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/comp.map.Rdata")
 plot.map(comp.map, bin.stats, dat.name="comp")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/circ.map.Rdata")
@@ -166,7 +166,6 @@ plot.map(asym.map, bin.stats, dat.name="asym")
 load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
 #FT.map <- list(FT=FT.map) # modify FT results so that they fit the structure of the plotting function, i.e. list with sublist(s)
 plot.map(FT.map, bin.stats, dat.name="FT")
-
 #---------
 
 # Epistatic plots
@@ -188,26 +187,31 @@ colnames(circ.init) <- c("chr", "start", "end")
 circ.init$chr <- as.factor(circ.init$chr)
 circ.init$start <- as.numeric(circ.init$start)
 circ.init$end <- as.numeric(circ.init$end)
-#summary(circ.init)
 
+# Create gen.circ.init to initialize genetic distance plots
+gen.circ.init <- lapply(1:nlevels(gen.bin.stats$chr), function(i) {
+  chr <- levels(gen.bin.stats$chr)[i]
+  chr.stats <- gen.bin.stats[gen.bin.stats$chr==chr, ]
+  start <- chr.stats$gen.bin.start[1]
+  end <- chr.stats$gen.bin.end[nrow(chr.stats)]
+  c(chr, start, end)
+} )
+gen.circ.init <- data.frame(do.call(rbind, gen.circ.init), stringsAsFactors = FALSE)
+colnames(gen.circ.init) <- c("chr", "start", "end")
+gen.circ.init$chr <- as.factor(gen.circ.init$chr)
+gen.circ.init$start <- as.numeric(gen.circ.init$start)
+gen.circ.init$end <- as.numeric(gen.circ.init$end)
 
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
 map.dat=comp.epi.map; dat.name="comp"; i=1
-map.dat=asym.epi.map; dat.name="asym"; i=1
 
 # Function to plot epistatic results
-# Plot all QTL plot in a 2D plane as a heatmap. Plot by bin-number. Make additional tick marks to delimit chromosomes
-# Make 2 versions for each trait, 0.95 and 0.90 correlation plots, to compare them
 #---------
-# TO DO
-# 1) reduce space between tracks => DONE
-# 2) reduce cell padding => DONE
-# 3) add y-axis scale lines in white
-# 4) implement circos.links for epistatic QTLs
-# 5) adjust track size with track height in circos.genomicTrackPlotRegion() => DONE
-# 6) increase size of the chromosome distance scale text and tick marks
-# 7) change to genetic distance
-plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
+# ...to install and reload the hacked version to label chrom-axes in cM if length < 1000
+# install.packages("/Users/Dani/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
+# detach("package:circlize", unload=TRUE)
+# library(circlize)
+plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
@@ -217,8 +221,37 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
       # separate into additive and epistatic QTL
       adt.nz.coef <- nz.coef[str_count(nz.coef$chr, "ch")==1, ]
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
-      # for additive QTL duplicate the information
+      # setup additive data
       adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) ) # trim and coerce to numeric certain columns
+      adt.nz.coef$color[adt.nz.coef$coefs > 0] <- 1
+      adt.nz.coef$color[adt.nz.coef$coefs < 0] <- -1
+      adt.nz.coef$coefs <- abs(adt.nz.coef$coefs)
+      # setup additive QTL BED objects for phys. dist. plots
+      adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=bin.start, end=bin.end, coefs=coefs, color=color) )
+      adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.95.start, end=int0.95.end, coefs=coefs, color=color) )
+      adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.90.start, end=int0.90.end, coefs=coefs, color=color) )
+      adt.dat.list95 <- list(adt.int95.bed, adt.bed)
+      adt.dat.list90 <- list(adt.int90.bed, adt.bed)
+      adt.ylim <- c(0, max(adt.nz.coef$coefs) )
+      # add gen. dist. info. and setup additive QTL BED objects for gen. dist. plots
+      tmp <- lapply(1:nrow(adt.nz.coef), function(i) { # create 6 new columns with genetic distance information for the intervals
+        gen.bin.start <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(adt.nz.coef$bin[i]) ]
+        gen.bin.end <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(adt.nz.coef$bin[i]) ]
+        gen.int0.95.start <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(adt.nz.coef$int0.95[i], ":")[[1]][1] ]
+        gen.int0.95.end <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(adt.nz.coef$int0.95[i], ":")[[1]][2] ]
+        gen.int0.90.start <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(adt.nz.coef$int0.90[i], ":")[[1]][1] ]
+        gen.int0.90.end <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(adt.nz.coef$int0.90[i], ":")[[1]][2] ]
+        c(gen.bin.start, gen.bin.end, gen.int0.95.start, gen.int0.95.end, gen.int0.90.start, gen.int0.90.end)
+      })
+      gen.dist.cols <- do.call(rbind, tmp)
+      colnames(gen.dist.cols) <- c('gen.bin.start', 'gen.bin.end','gen.int0.95.start', 'gen.int0.95.end', 'gen.int0.90.start', 'gen.int0.90.end')
+      adt.nz.coef <- cbind(adt.nz.coef, gen.dist.cols)
+      # setup additive QTL BED objects for gen. dist. plots
+      gen.adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end, coefs=coefs, color=color) )
+      gen.adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.int0.95.start, end=gen.int0.95.end, coefs=coefs, color=color) )
+      gen.adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.int0.90.start, end=gen.int0.90.end, coefs=coefs, color=color) )
+      gen.adt.dat.list95 <- list(gen.adt.int95.bed, gen.adt.bed)
+      gen.adt.dat.list90 <- list(gen.adt.int90.bed, gen.adt.bed)
       # for epistatic QTL deconvolute the data into separate chromosome and bin position columns
       epi.nz.coef$bin1 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][1])
       epi.nz.coef$chr1 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][1])
@@ -259,47 +292,133 @@ plot.epi.map <- function(map.dat, doubled.bin.stats, dat.name, circ.init) {
       epi952.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.95.start2, end=int0.95.end2, coefs=coefs) )
       epi901.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=int0.90.start1, end=int0.90.end1, coefs=coefs) )
       epi902.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.90.start2, end=int0.90.end2, coefs=coefs) )
+      # add gen. dist. info. for epistatic QTL
+      tmp <- lapply(1:nrow(epi.nz.coef), function(i) { # create new columns with genetic distance information for the intervals
+        gen.bin.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
+        gen.bin.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
+        gen.int0.95.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][1] ]
+        gen.int0.95.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][2] ]
+        gen.int0.90.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][1] ]
+        gen.int0.90.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][2] ]
+        gen.bin.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
+        gen.bin.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
+        gen.int0.95.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][1] ]
+        gen.int0.95.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][2] ]
+        gen.int0.90.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][1] ]
+        gen.int0.90.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][2] ]
+        c(gen.bin.start1, gen.bin.end1, gen.int0.95.start1, gen.int0.95.end1, gen.int0.90.start1, gen.int0.90.end1, gen.bin.start2,
+          gen.bin.end2, gen.int0.95.start2, gen.int0.95.end2, gen.int0.90.start2, gen.int0.90.end2)
+      })
+      gen.dist.cols <- do.call(rbind, tmp)
+      colnames(gen.dist.cols) <- c('gen.bin.start1', 'gen.bin.end1','gen.int0.95.start1', 'gen.int0.95.end1', 'gen.int0.90.start1', 'gen.int0.90.end1',
+                                   'gen.bin.start2', 'gen.bin.end2','gen.int0.95.start2', 'gen.int0.95.end2', 'gen.int0.90.start2', 'gen.int0.90.end2')
+      epi.nz.coef <- cbind(epi.nz.coef, gen.dist.cols)
+      # make 2 bed-like files for the links/chords for epistatic QTLs, ditto for each of the correlation intervals
+      gen.epi1.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=gen.bin.start1, end=gen.bin.end1, coefs=coefs) )
+      gen.epi2.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.bin.start2, end=gen.bin.end2, coefs=coefs) )
+      gen.epi951.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=gen.int0.95.start1, end=gen.int0.95.end1, coefs=coefs) )
+      gen.epi952.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.int0.95.start2, end=gen.int0.95.end2, coefs=coefs) )
+      gen.epi901.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=gen.int0.90.start1, end=gen.int0.90.end1, coefs=coefs) )
+      gen.epi902.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.int0.90.start2, end=gen.int0.90.end2, coefs=coefs) )
+      # bin structure BED objects
       bin.bed <- with(bin.stats, data.frame(chr=chr, start=bin.start, end=bin.end) ) # BED-like data.frame specifying BIN structure
-      adt.nz.coef$color[adt.nz.coef$coefs > 0] <- 1 # adding a color column may be "illegal"
-      adt.nz.coef$color[adt.nz.coef$coefs < 0] <- -1
-      adt.nz.coef$coefs <- abs(adt.nz.coef$coefs)
-      adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=bin.start, end=bin.end, coefs=coefs, color=color) )
-      adt.bed$transparency <- 0
-      adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.95.start, end=int0.95.end, coefs=coefs, color=color) )
-      adt.int95.bed$transparency <- 0.75
-      adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.90.start, end=int0.90.end, coefs=coefs, color=color) )
-      adt.int90.bed$transparency <- 0.75
-      adt.dat.list95 <- list(adt.int95.bed, adt.bed)
-      adt.dat.list90 <- list(adt.int90.bed, adt.bed)
-      adt.ylim <- c(0, max(adt.nz.coef$coefs) )
-      # start plotting
-      par(mar = c(1, 1, 1, 1) ) #, lwd = 0.5, cex = 1) # investigate later whether all these params. are ideal
-      circos.par("start.degree" = 90, "track.margin"=c(0.005,0)) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-      circos.genomicInitialize(circ.init, sector.width=circ.init$end )
-      # chromosome bounding box can be customized w.r.t. background and border, see circos.trackPlotRegion()      
-      circos.genomicTrackPlotRegion(data = adt.dat.list90, track.height=0.28, cell.padding=c(0.01,0,0.01,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
-        i = getI(...) # assign the plotting iteration through the data list's elemetns to a counter
+      gen.bin.bed <- with(gen.bin.stats, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end) ) # BED-like data.frame specifying gen.bin structure
+      # set up plotting parameters to reuse, such as track.margin, etc.
+      init.tkHt = 0.05
+      gap.degree = 2
+      bottom.margin = 0.005
+      adt.tkHt = 0.20 # additive track height
+      cpad = 0.01
+      bin.tkHt = 0.07
+      transp = 0.75
+      transp2 = 0.3
+      bkgd.col = "gray90" # gray95 works well too, but it's not very visible in my monitor
+      init.cex = 1.2
+      major.by=20
+      # Physical distance plots
+      # 0.90 correlation
+      par(mar = c(1, 1, 1, 1), cex = init.cex ) #, lwd = 0.5, cex = 1) # investigate later whether all these params. are ideal
+      circos.par("start.degree" = 90, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
+      circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt )
+      par(cex = 1 )
+      circos.genomicTrackPlotRegion(data = adt.dat.list90, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
+        
+        i = getI(...) # assign the plotting iteration through the data list's elements to a counter
         if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0.75 )
+          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
         } else {
           sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
         }
         circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
-      }, bg.col="gray87", bg.border=NA ) 
-      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=0.07, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
+      }, bg.col=bkgd.col, bg.border=NA ) 
+      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
         circos.genomicRect(region, value, col="white", border="black", ybottom=0, ytop=1, lwd=0.5, ...)
       }, bg.border=NA )
-      col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=0.75 )
+      col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=transp )
       col.vector <- col.fun(epi.nz.coef$coefs)
       circos.genomicLink(epi901.bed, epi902.bed, col=col.vector, border=col.vector, lwd=0.5)
       col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=0 )
       col.vector <- col.fun(epi.nz.coef$coefs)
       circos.genomicLink(epi1.bed, epi2.bed, col=col.vector, border=col.vector, lwd=0.5)
       circos.clear()
+      # Genetic distance plots
+      # 0.90 correlation
+      par(mar = c(1, 1, 1, 1), cex = init.cex ) #, lwd = 0.5, cex = 1) # investigate later whether all these params. are ideal
+      circos.par("start.degree" = 90, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
+      circos.genomicInitialize(gen.circ.init, sector.width=gen.circ.init$end, track.height=init.tkHt, major.by=major.by )
+      par(cex = 1 )
+      circos.genomicTrackPlotRegion(data = gen.adt.dat.list90, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
+        i = getI(...) # assign the plotting iteration through the data list's elemetns to a counter
+        if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
+          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
+        } else {
+          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
+        }
+        circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
+      }, bg.col=bkgd.col, bg.border=NA ) 
+      circos.genomicTrackPlotRegion(data = gen.bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
+        circos.genomicRect(region, value, col="white", border="black", ybottom=0, ytop=1, lwd=0.5, ...)
+      }, bg.border=NA )
+      col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=transp )
+      col.vector <- col.fun(epi.nz.coef$coefs)
+      circos.genomicLink(gen.epi901.bed, gen.epi902.bed, col=col.vector, border=col.vector, lwd=0.5)
+      col.fun = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"), transparency=0 )
+      col.vector <- col.fun(epi.nz.coef$coefs)
+      circos.genomicLink(gen.epi1.bed, gen.epi2.bed, col=col.vector, border=col.vector, lwd=0.5)
+      # add legends
+      legend.col = colorRamp2(breaks=c(min(epi.nz.coef$coefs),0,max(epi.nz.coef$coefs)), colors=c("magenta", "black", "green"))
+      num.col.vector <- c( seq(max(epi.nz.coef$coefs), 0, length.out=7), seq(0, min(epi.nz.coef$coefs), length.out=7)[2:7])
+      legend.col.vector <- legend.col(num.col.vector)
+      text.col.vector <- as.character(round(num.col.vector, 2) )
+      text.col.vector[c(2,3,5,6,8,9,11,12)] <- ""
+      legend(x=0.77, y=0.98, legend=text.col.vector,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6)
+      legend(x=0.755, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6)
+      legend(x=0.74, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6)
+      text(x=0.893, y=1, labels="Epistatic QTL", cex=0.7)
+      text.col.vector <- c("green", "magenta")
+      legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+      legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+      legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+      legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+      text(x=-0.844, y=1, labels="Additive QTL", cex=0.7)
+      circos.clear()
     }
   }
 }
 #-----------
+# TO DO
+# 1) reduce space between tracks => DONE
+# 2) reduce cell padding => DONE
+# 3) add y-axis scale lines in white for additive QTLs; prob. requires maing space in the top btw. chr. 01 & 12 to fit the text of the y-axis
+# 4) implement circos.links for epistatic QTLs => DONE
+# 5) adjust track size with track height in circos.genomicTrackPlotRegion() => DONE
+# 6) increase size of the chromosome distance scale text and tick marks => DONE
+# 7) change to genetic distance => DONE
+# 8) change tick labels units to cM => DONE
+# 9) check gen.dist borders => DONE, but I don't know why there are points outside the plotting regions
+#10) add legends
+
+
 # Useful for adjusting circos plotting parameters
 # circos.par("cell.padding") # [1] 0.02 0.00 0.02 0.00; bottom, left, top, right; 1st & 3rd are % radius, 2nd & 4th are degrees
 # circos.par("track.height") # [1] 0.2 , i.e. 20% of radius
