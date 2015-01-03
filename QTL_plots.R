@@ -204,7 +204,7 @@ gen.circ.init$start <- as.numeric(gen.circ.init$start)
 gen.circ.init$end <- as.numeric(gen.circ.init$end)
 
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
-# map.dat=comp.epi.map; dat.name="comp"; i=3
+# map.dat=comp.epi.map; dat.name="comp"; i=1; n.dig=2; start.degree=87; gap.degree=c(rep(1.5, 11), 6)
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
 # map.dat=circ.epi.map; dat.name="circ"; i=2
 # map.dat=sym.epi.map; dat.name="sym"; i=9
@@ -215,7 +215,7 @@ gen.circ.init$end <- as.numeric(gen.circ.init$end)
 # install.packages("/Users/Dani/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
 # detach("package:circlize", unload=TRUE)
 # library(circlize)
-plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig) {
+plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
@@ -378,225 +378,91 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       }
       text.col.vector1[c(2,3,5,6,8,9,11,12)] <- ""
       text.col.vector2 <- c("green", "magenta")
+      # Individual plot function
+      circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
+                             epi.int.bed1, epi.int.bed2, epi.bed1, epi.bed2, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef) {
+        pdf(file=plot.path, width=8, height=8)
+        par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params.
+        circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
+        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt )
+        par(cex = 1 )
+        circos.genomicTrackPlotRegion(data = phys.lines, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {
+          cell.xlim = get.cell.meta.data("cell.xlim")
+          circos.lines(x=cell.xlim, y=c(value$l1, value$l1), lty=2, lwd=0.3, col="gray50")
+          circos.lines(x=cell.xlim, y=c(value$l2, value$l2), lty=2, lwd=0.3, col="gray50" )
+          circos.lines(x=cell.xlim, y=c(value$l3, value$l3), lty=2, lwd=0.3, col="gray50" )
+        }, bg.col=bkgd.col, bg.border=NA )
+        circos.genomicTrackPlotRegion(data = adt.list, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
+          i = getI(...) # assign the plotting iteration through the data list's elements to a counter
+          if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
+            sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
+          } else {
+            sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
+          }
+          circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
+        }, bg.border=NA ) 
+        circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
+          circos.genomicRect(region, value, col="white", border=bin.col, ybottom=0, ytop=1, lwd=0.5, ...)
+        }, bg.border=NA )
+        circos.genomicLink(epi.int.bed1, epi.int.bed2, col=col.vector1, border=col.vector1, lwd=0.5)
+        circos.genomicLink(epi.bed1, epi.bed2, col=col.vector2, border=col.vector2, lwd=0.5)
+        # add legends
+        legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+        legend(x=0.855, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+        legend(x=0.84, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+        text(x=0.91, y=1, labels="Epistatic QTL", cex=0.9)
+        legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+        legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+        legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+        legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
+        text(x=-0.841, y=1, labels="Additive QTL", cex=0.9)
+        text(x=0, y=0.89, offset=0, labels="A", cex=1.1)
+        text(x=0, y=0.705, offset=0, labels="B", cex=1.1)
+        text(x=0, y=0.64, offset=0, labels="C", cex=1.1)
+        if (max(adt.nz.coef$coefs) < 1e-2 ) {
+          text(x=0, y=0.936, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs), 2)), cex=0.6)
+          text(x=0, y=0.846, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs)/2, 2)), cex=0.6)
+        } else {
+          text(x=0, y=0.936, offset=0, labels=as.character(round(max(adt.nz.coef$coefs), n.dig)), cex=0.6)
+          text(x=0, y=0.846, offset=0, labels=as.character(round(max(adt.nz.coef$coefs)/2, n.dig)), cex=0.6)
+        }
+        text(x=0, y=0.756, offset=0, labels="0", cex=0.6)
+        dev.off()
+        circos.clear()
+      }
       # Physical distance plots
       # 0.90 correlation
       physDist.plot.path="/Users/Dani/UCD/BILs/physDist.epi.plots/"
       plot.path <- paste0(physDist.plot.path, "physDist.0.90corr/", dat.name, ".", trait.name, ".physDist.0.90corr.epiPlot", ".pdf")
-      pdf(file=plot.path, width=8, height=8)
-      par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params.
-      circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-      circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt )
-      par(cex = 1 )
-      circos.genomicTrackPlotRegion(data = phys.lines, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {
-        cell.xlim = get.cell.meta.data("cell.xlim")
-        circos.lines(x=cell.xlim, y=c(value$l1, value$l1), lty=2, lwd=0.3, col="gray50")
-        circos.lines(x=cell.xlim, y=c(value$l2, value$l2), lty=2, lwd=0.3, col="gray50" )
-        circos.lines(x=cell.xlim, y=c(value$l3, value$l3), lty=2, lwd=0.3, col="gray50" )
-      }, bg.col=bkgd.col, bg.border=NA )
-      circos.genomicTrackPlotRegion(data = adt.dat.list90, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
-        i = getI(...) # assign the plotting iteration through the data list's elements to a counter
-        if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
-        } else {
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
-        }
-        circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
-      }, bg.border=NA ) 
-      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
-        circos.genomicRect(region, value, col="white", border=bin.col, ybottom=0, ytop=1, lwd=0.5, ...)
-      }, bg.border=NA )
-      circos.genomicLink(epi901.bed, epi902.bed, col=col.vector1, border=col.vector1, lwd=0.5)
-      circos.genomicLink(epi1.bed, epi2.bed, col=col.vector2, border=col.vector2, lwd=0.5)
-      # add legends
-      legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.855, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.84, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      text(x=0.91, y=1, labels="Epistatic QTL", cex=0.9)
-      legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      text(x=-0.841, y=1, labels="Additive QTL", cex=0.9)
-      text(x=0, y=0.89, offset=0, labels="A", cex=1.1)
-      text(x=0, y=0.705, offset=0, labels="B", cex=1.1)
-      text(x=0, y=0.64, offset=0, labels="C", cex=1.1)
-      if (max(adt.nz.coef$coefs) < 1e-2 ) {
-        text(x=0, y=0.936, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs), 2)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs)/2, 2)), cex=0.6)
-      } else {
-        text(x=0, y=0.936, offset=0, labels=as.character(round(max(adt.nz.coef$coefs), n.dig)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(round(max(adt.nz.coef$coefs)/2, n.dig)), cex=0.6)
-      }
-      text(x=0, y=0.756, offset=0, labels="0", cex=0.6)
-      dev.off()
-      circos.clear()
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list90, bin.bed, bin.tkHt,
+                bin.col, epi.int.bed1=epi901.bed, epi.int.bed2=epi902.bed, epi.bed1=epi1.bed, epi.bed2=epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)
       # 0.95 correlation
       physDist.plot.path="/Users/Dani/UCD/BILs/physDist.epi.plots/"
       plot.path <- paste0(physDist.plot.path, "physDist.0.95corr/", dat.name, ".", trait.name, ".physDist.0.95corr.epiPlot", ".pdf")
-      pdf(file=plot.path, width=8, height=8)
-      par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params.
-      circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-      circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt )
-      par(cex = 1 )
-      circos.genomicTrackPlotRegion(data = phys.lines, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {
-        cell.xlim = get.cell.meta.data("cell.xlim")
-        circos.lines(x=cell.xlim, y=c(value$l1, value$l1), lty=2, lwd=0.3, col="gray50")
-        circos.lines(x=cell.xlim, y=c(value$l2, value$l2), lty=2, lwd=0.3, col="gray50" )
-        circos.lines(x=cell.xlim, y=c(value$l3, value$l3), lty=2, lwd=0.3, col="gray50" )
-      }, bg.col=bkgd.col, bg.border=NA )
-      circos.genomicTrackPlotRegion(data = adt.dat.list95, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
-        i = getI(...) # assign the plotting iteration through the data list's elements to a counter
-        if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
-        } else {
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
-        }
-        circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
-      }, bg.border=NA ) 
-      circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
-        circos.genomicRect(region, value, col="white", border=bin.col, ybottom=0, ytop=1, lwd=0.5, ...)
-      }, bg.border=NA )
-      circos.genomicLink(epi951.bed, epi952.bed, col=col.vector1, border=col.vector1, lwd=0.5)
-      circos.genomicLink(epi1.bed, epi2.bed, col=col.vector2, border=col.vector2, lwd=0.5)
-      # add legends
-      legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.855, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.84, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      text(x=0.91, y=1, labels="Epistatic QTL", cex=0.9)
-      text.col.vector <- c("green", "magenta")
-      legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      text(x=-0.841, y=1, labels="Additive QTL", cex=0.9)
-      text(x=0, y=0.89, offset=0, labels="A", cex=1.1)
-      text(x=0, y=0.705, offset=0, labels="B", cex=1.1)
-      text(x=0, y=0.64, offset=0, labels="C", cex=1.1)
-      if (max(adt.nz.coef$coefs) < 1e-2 ) {
-        text(x=0, y=0.936, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs), 2)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs)/2, 2)), cex=0.6)
-      } else {
-        text(x=0, y=0.936, offset=0, labels=as.character(round(max(adt.nz.coef$coefs), n.dig)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(round(max(adt.nz.coef$coefs)/2, n.dig)), cex=0.6)
-      }
-      text(x=0, y=0.756, offset=0, labels="0", cex=0.6)
-      dev.off()
-      circos.clear()
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list95, bin.bed, bin.tkHt,
+                bin.col, epi.int.bed1=epi951.bed, epi.int.bed2=epi952.bed, epi.bed1=epi1.bed, epi.bed2=epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)
       # Genetic distance plots
       # 0.90 correlation
       genDist.plot.path="/Users/Dani/UCD/BILs/genDist.epi.plots/"
       plot.path <- paste0(genDist.plot.path, "genDist.0.90corr/", dat.name, ".", trait.name, ".genDist.0.90corr.epiPlot", ".pdf")
-      pdf(file=plot.path, width=8, height=8)
-      par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params.
-      circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-      circos.genomicInitialize(gen.circ.init, sector.width=gen.circ.init$end, track.height=init.tkHt, major.by=major.by )
-      par(cex = 1 )
-      circos.genomicTrackPlotRegion(data = gen.lines, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {
-        cell.xlim = get.cell.meta.data("cell.xlim")
-        circos.lines(x=cell.xlim, y=c(value$l1, value$l1), lty=2, lwd=0.3, col="gray50")
-        circos.lines(x=cell.xlim, y=c(value$l2, value$l2), lty=2, lwd=0.3, col="gray50" )
-        circos.lines(x=cell.xlim, y=c(value$l3, value$l3), lty=2, lwd=0.3, col="gray50" )
-      }, bg.col=bkgd.col, bg.border=NA )
-      circos.genomicTrackPlotRegion(data = gen.adt.dat.list90, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
-        i = getI(...) # assign the plotting iteration through the data list's elemetns to a counter
-        if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
-        } else {
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
-        }
-        circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
-      }, bg.border=NA ) 
-      circos.genomicTrackPlotRegion(data = gen.bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), bg.border=NA , panel.fun = function(region, value, ...) {
-        circos.genomicRect(region, value, col="white", border=bin.col, ybottom=0, ytop=1, lwd=0.05, ...)
-      })
-      circos.genomicLink(gen.epi901.bed, gen.epi902.bed, col=col.vector1, border=col.vector1, lwd=0.5)
-      circos.genomicLink(gen.epi1.bed, gen.epi2.bed, col=col.vector2, border=col.vector2, lwd=0.5)
-      # add legends
-      legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.855, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.84, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      text(x=0.91, y=1, labels="Epistatic QTL", cex=0.9)
-      text.col.vector <- c("green", "magenta")
-      legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      text(x=-0.841, y=1, labels="Additive QTL", cex=0.9)
-      text(x=0, y=0.89, offset=0, labels="A", cex=1.1)
-      text(x=0, y=0.705, offset=0, labels="B", cex=1.1)
-      text(x=0, y=0.64, offset=0, labels="C", cex=1.1)
-      if (max(adt.nz.coef$coefs) < 1e-2 ) {
-        text(x=0, y=0.936, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs), 2)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs)/2, 2)), cex=0.6)
-      } else {
-        text(x=0, y=0.936, offset=0, labels=as.character(round(max(adt.nz.coef$coefs), n.dig)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(round(max(adt.nz.coef$coefs)/2, n.dig)), cex=0.6)
-      }
-      text(x=0, y=0.756, offset=0, labels="0", cex=0.6)
-      dev.off()
-      circos.clear()
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list90, bin.bed=gen.bin.bed, bin.tkHt,
+                bin.col, epi.int.bed1=gen.epi901.bed, epi.int.bed2=gen.epi902.bed, epi.bed1=gen.epi1.bed, epi.bed2=gen.epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)      
       # 0.95 correlation
       genDist.plot.path="/Users/Dani/UCD/BILs/genDist.epi.plots/"
       plot.path <- paste0(genDist.plot.path, "genDist.0.95corr/", dat.name, ".", trait.name, ".genDist.0.95corr.epiPlot", ".pdf")
-      pdf(file=plot.path, width=8, height=8)
-      par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params.
-      circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-      circos.genomicInitialize(gen.circ.init, sector.width=gen.circ.init$end, track.height=init.tkHt, major.by=major.by )
-      par(cex = 1 )
-      circos.genomicTrackPlotRegion(data = gen.lines, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {
-        cell.xlim = get.cell.meta.data("cell.xlim")
-        circos.lines(x=cell.xlim, y=c(value$l1, value$l1), lty=2, lwd=0.3, col="gray50")
-        circos.lines(x=cell.xlim, y=c(value$l2, value$l2), lty=2, lwd=0.3, col="gray50" )
-        circos.lines(x=cell.xlim, y=c(value$l3, value$l3), lty=2, lwd=0.3, col="gray50" )
-      }, bg.col=bkgd.col, bg.border=NA )
-      circos.genomicTrackPlotRegion(data = gen.adt.dat.list95, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
-        i = getI(...) # assign the plotting iteration through the data list's elemetns to a counter
-        if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
-        } else {
-          sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
-        }
-        circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
-      }, bg.border=NA ) 
-      circos.genomicTrackPlotRegion(data = gen.bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), bg.border=NA , panel.fun = function(region, value, ...) {
-        circos.genomicRect(region, value, col="white", border=bin.col, ybottom=0, ytop=1, lwd=0.05, ...)
-      })
-      circos.genomicLink(gen.epi951.bed, gen.epi952.bed, col=col.vector1, border=col.vector1, lwd=0.5)
-      circos.genomicLink(gen.epi1.bed, gen.epi2.bed, col=col.vector2, border=col.vector2, lwd=0.5)
-      # add legends
-      legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.855, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      legend(x=0.84, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-      text(x=0.91, y=1, labels="Epistatic QTL", cex=0.9)
-      legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
-      text(x=-0.841, y=1, labels="Additive QTL", cex=0.9)
-      text(x=0, y=0.89, offset=0, labels="A", cex=1.1)
-      text(x=0, y=0.705, offset=0, labels="B", cex=1.1)
-      text(x=0, y=0.64, offset=0, labels="C", cex=1.1)
-      if (max(adt.nz.coef$coefs) < 1e-2 ) {
-        text(x=0, y=0.936, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs), 2)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs)/2, 2)), cex=0.6)
-      } else {
-        text(x=0, y=0.936, offset=0, labels=as.character(round(max(adt.nz.coef$coefs), n.dig)), cex=0.6)
-        text(x=0, y=0.846, offset=0, labels=as.character(round(max(adt.nz.coef$coefs)/2, n.dig)), cex=0.6)
-      }
-      text(x=0, y=0.756, offset=0, labels="0", cex=0.6)
-      dev.off()
-      circos.clear()
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list95, bin.bed=gen.bin.bed, bin.tkHt,
+                bin.col, epi.int.bed1=gen.epi951.bed, epi.int.bed2=gen.epi952.bed, epi.bed1=gen.epi1.bed, epi.bed2=gen.epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)      
     }
   }
 }
 #-----------
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
-plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2)
+plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2, 87, c(rep(1.5, 11), 6) )
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
-plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3)
+plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/sym.epi.map.Rdata")
-plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3)
+plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
-plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3)
+plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/FT.epi.map.Rdata")
-plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3)
+plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
