@@ -203,19 +203,10 @@ gen.circ.init$chr <- as.factor(gen.circ.init$chr)
 gen.circ.init$start <- as.numeric(gen.circ.init$start)
 gen.circ.init$end <- as.numeric(gen.circ.init$end)
 
-# load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
-# map.dat=comp.epi.map; dat.name="comp"; i=1; n.dig=2; start.degree=87; gap.degree=c(rep(1.5, 11), 6)
-# load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
-# map.dat=circ.epi.map; dat.name="circ"; i=2
-# map.dat=sym.epi.map; dat.name="sym"; i=9; n.dig=3; start.degree=86.5; gap.degree=c(rep(1.5, 11), 7)
-# map.dat=asym.epi.map; dat.name="asym"; i=5; n.dig=3; start.degree=86.5; gap.degree=c(rep(1.5, 11), 7)
-
 # Function to plot epistatic results
 #---------
 # ...to install and reload the hacked version to label chrom-axes in cM if length < 1000
 # install.packages("/Users/Dani/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
-# detach("package:circlize", unload=TRUE)
-# library(circlize)
 plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
@@ -518,5 +509,3 @@ plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, g
 plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/FT.epi.map.Rdata")
 plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
-
-lines=phys.lines; adt.list=adt.dat.list90; epi.int.bed1=epi901.bed; epi.int.bed2=epi902.bed; epi.bed1=epi1.bed; epi.bed2=epi2.bed
