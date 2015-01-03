@@ -208,7 +208,7 @@ gen.circ.init$end <- as.numeric(gen.circ.init$end)
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
 # map.dat=circ.epi.map; dat.name="circ"; i=2
 # map.dat=sym.epi.map; dat.name="sym"; i=9; n.dig=3; start.degree=86.5; gap.degree=c(rep(1.5, 11), 7)
-# map.dat=asym.epi.map; dat.name="asym"; i=4; n.dig=3; start.degree=86.5; gap.degree=c(rep(1.5, 11), 7)
+# map.dat=asym.epi.map; dat.name="asym"; i=5; n.dig=3; start.degree=86.5; gap.degree=c(rep(1.5, 11), 7)
 
 # Function to plot epistatic results
 #---------
@@ -225,7 +225,10 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       nz.coef <- map.dat[[i]]$non.zero.coefs
       # separate into additive and epistatic QTL
       adt.nz.coef <- nz.coef[str_count(nz.coef$chr, "ch")==1, ]
+      adt.nz.coef <- droplevels(adt.nz.coef)
+      adt.nz.coef$chr <- as.character(adt.nz.coef$chr)
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
+      epi.nz.coef <- droplevels(epi.nz.coef)
       if ( nrow(epi.nz.coef)==0 & nrow(adt.nz.coef)!=0 ) { next }
       # setup additive data
       adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) ) # trim and coerce to numeric certain columns
@@ -234,9 +237,9 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       adt.nz.coef$coefs <- abs(adt.nz.coef$coefs)
       # setup additive QTL BED objects for phys. dist. plots
       if (nrow(adt.nz.coef) != 0) {
-        adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=bin.start, end=bin.end, coefs=coefs, color=color, row.names=1) )
-        adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.95.start, end=int0.95.end, coefs=coefs, color=color, row.names=1) )
-        adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.90.start, end=int0.90.end, coefs=coefs, color=color, row.names=1) )
+        adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=bin.start, end=bin.end, coefs=coefs, color=color, row.names=NULL) )
+        adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.95.start, end=int0.95.end, coefs=coefs, color=color, row.names=NULL) )
+        adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=int0.90.start, end=int0.90.end, coefs=coefs, color=color, row.names=NULL) )
         adt.dat.list95 <- list(adt.int95.bed, adt.bed)
         adt.dat.list90 <- list(adt.int90.bed, adt.bed)
         adt.ylim <- c(0, max(adt.nz.coef$coefs) )
@@ -254,9 +257,9 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         colnames(gen.dist.cols) <- c('gen.bin.start', 'gen.bin.end','gen.int0.95.start', 'gen.int0.95.end', 'gen.int0.90.start', 'gen.int0.90.end')
         adt.nz.coef <- cbind(adt.nz.coef, gen.dist.cols)
         # setup additive QTL BED objects for gen. dist. plots
-        gen.adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end, coefs=coefs, color=color) )
-        gen.adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.int0.95.start, end=gen.int0.95.end, coefs=coefs, color=color) )
-        gen.adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.int0.90.start, end=gen.int0.90.end, coefs=coefs, color=color) )
+        gen.adt.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end, coefs=coefs, color=color, row.names=NULL) )
+        gen.adt.int95.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.int0.95.start, end=gen.int0.95.end, coefs=coefs, color=color, row.names=NULL) )
+        gen.adt.int90.bed <- with(adt.nz.coef, data.frame(chr=chr, start=gen.int0.90.start, end=gen.int0.90.end, coefs=coefs, color=color, row.names=NULL) )
         gen.adt.dat.list95 <- list(gen.adt.int95.bed, gen.adt.bed)
         gen.adt.dat.list90 <- list(gen.adt.int90.bed, gen.adt.bed)
       } else if (nrow(adt.nz.coef) == 0) {
@@ -511,7 +514,9 @@ plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init,
 plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
 # load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/sym.epi.map.Rdata")
 plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
-load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
+# load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
 plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/FT.epi.map.Rdata")
 plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
+
+lines=phys.lines; adt.list=adt.dat.list90; epi.int.bed1=epi901.bed; epi.int.bed2=epi902.bed; epi.bed1=epi1.bed; epi.bed2=epi2.bed
