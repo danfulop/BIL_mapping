@@ -7,7 +7,7 @@ library(circlize)
 library(scam)
 library(scales)
 
-load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
+# load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
 
 # Use shape constrained monotonically increasing general additive models to convert physical to genetic distance, using scam package
 
@@ -19,7 +19,7 @@ load(file="/Users/Dani/UCD/BILs/pen12t.Rdata")
 #   fits[[i]] <- scamfit
 # }
 # save(fits, file="/Users/Dani/UCD/BILs/scam_fits.Rdata") # save scam fits' list object
-load("/Users/Dani/UCD/BILs/scam_fits.Rdata")
+# load("/Users/Dani/UCD/BILs/scam_fits.Rdata")
 
 # load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
 # bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
