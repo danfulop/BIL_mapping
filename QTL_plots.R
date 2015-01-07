@@ -1,3 +1,5 @@
+# ...to install and reload the hacked version to label chromosomes' axes in cM if length < 1000
+# install.packages("/Users/Dani/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
 library(stringr)
 library(plyr)
 library(ggplot2)
@@ -203,10 +205,9 @@ gen.circ.init$chr <- as.factor(gen.circ.init$chr)
 gen.circ.init$start <- as.numeric(gen.circ.init$start)
 gen.circ.init$end <- as.numeric(gen.circ.init$end)
 
-# Function to plot epistatic results
+# Functions to plot epistatic results
 #---------
-# ...to install and reload the hacked version to label chrom-axes in cM if length < 1000
-# install.packages("/Users/Dani/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
+# Function to iterate through a list of mapping results of phenotypic traits
 plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
@@ -266,7 +267,8 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         gen.adt.dat.list95 <- NULL
         gen.adt.dat.list90 <- NULL
       }
-      # for epistatic QTL deconvolute the data into separate chromosome and bin position columns
+      # For epistatic QTL deconvolute the data into separate chromosome and bin position columns
+      # The epistatic code could be simplified and it sets up many unused informational columns. However, it's set up in such a way as to enable replotting in other formats such as equally sized bins
       epi.nz.coef$bin1 <- laply(epi.nz.coef$bin, function(x) str_split(x, "_x_")[[1]][1])
       epi.nz.coef$chr1 <- laply(epi.nz.coef$chr, function(x) str_split(x, "//")[[1]][1])
       epi.nz.coef$bin.mid1 <- laply(epi.nz.coef$bin.mid, function(x) str_split(x, "//")[[1]][1])
@@ -338,102 +340,106 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       bin.bed <- with(bin.stats, data.frame(chr=chr, start=bin.start, end=bin.end) ) # BED-like data.frame specifying BIN structure
       gen.bin.bed <- with(gen.bin.stats, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end) ) # BED-like data.frame specifying gen.bin structure
       # set up plotting parameters to reuse, such as track.margin, etc.
-      init.tkHt = 0.05
-      gap.degree = c(rep(1.5, 11), 7)
-      start.degree = 86.5
-      bottom.margin = 0.005
-      adt.tkHt = 0.20 # additive track height
-      cpad = 0.01
-      bin.tkHt = 0.07
-      transp = 0.75
-      transp2 = 0.3
-      bkgd.col = "gray90" # gray95 works well too, but it's not very visible in my monitor
-      init.cex = 1.35
-      major.by=20
-      bin.col=alpha("black", 0.5)
+      init.tkHt = 0.05 # track height (in proportion of the circle's radius) of the chromosomal distance track used to initialize the circos plot
+      # the following 2 params. are now set in the bigger function; they're kept here for commenting purposes
+#       gap.degree = c(rep(1.5, 11), 7) # vector of gap angles between chromosomes in degrees; the last gap which btw the last and 1st chromosome is larger in order to accomodate the axis and track labels
+#       start.degree = 86.5 # counter-clockwise angle from right-side horiozntal line at which circos plot begins; in order for the plot to be centered this angle has to be coordinated with the gap.degree
+      bottom.margin = 0.005 # bottom margin between tracks (in proportion of the circle's radius)
+      adt.tkHt = 0.20 # additive track height (in proportion of the circle's radius)
+      cpad = 0.01 # cell padding on left and right
+      bin.tkHt = 0.07 # BIN structure track height (in proportion of the circle's radius)
+      transp = 0.75 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha
+      bkgd.col = "gray90" # gray95 works well too, but it's not very visible in some monitors
+      init.cex = 1.35 # font size scalar for initializing the circos plot
+      major.by=20 # Major tick mark every 20 cM; only used for the genetic distance plots
+      bin.col=alpha("black", 0.5) # color used for the BINs' rectangles, i.e. black w/ 50% trans
       smidgen=1e-13 # very small number by which to extend color scale edges in order to circumvent occasional issue w/ rgb() whereby value to convert to color is outside of 0-1 range, when it should be == 1.
-      if ( nrow(adt.nz.coef)==0 ) {
-        gen.lines <- NULL; phys.lines = NULL
+      if ( nrow(adt.nz.coef)==0 ) {   # Y-axis lines for additive QTL track are NULL is there are no additive QTL
+        gen.lines <- NULL; phys.lines = NULL 
       } else {
         gen.lines <- cbind(gen.circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
         phys.lines <- cbind(circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
       }
       # Epistatic chords' color functions and related
-      if (min(epi.nz.coef$coefs) > 0 ) {
+      if (min(epi.nz.coef$coefs) > 0 ) { # Set the color function depending on whether the QTL coefficient's range spans zero or not, and if not whether it's positive or negative
         col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
       } else if (max(epi.nz.coef$coefs) < 0 ) {
         col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
       } else {
         col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
       }
-      col.vector1 <- col.fun1(epi.nz.coef$coefs)
-      if (min(epi.nz.coef$coefs) > 0 ) {
+      col.vector1 <- col.fun1(epi.nz.coef$coefs) # vector of colors for the epistatic QTL's interval around peak, i.e. w/ transparency
+      if (min(epi.nz.coef$coefs) > 0 ) { # same as above, but w/o transparency
         col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
       } else if (max(epi.nz.coef$coefs) < 0) {
         col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
       } else {
         col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
       }
-      col.vector2 <- col.fun2(epi.nz.coef$coefs)
+      col.vector2 <- col.fun2(epi.nz.coef$coefs) # vector of colors for the epistatic QTL's peaks, i.e. w/o transparency
       # Epistatic legend color function and related
-      if (min(epi.nz.coef$coefs) > 0 ) {
+      if (min(epi.nz.coef$coefs) > 0 ) { # setup the epistatic legend function differently depending on the sign of the range and whether it spans zero
         num.col.vector <- c( seq(max(epi.nz.coef$coefs),((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), length.out=7), seq(((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), min(epi.nz.coef$coefs), length.out=7)[2:7])
       } else if (max(epi.nz.coef$coefs) < 0) {
         num.col.vector <- c( seq(max(epi.nz.coef$coefs),((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), length.out=7), seq(((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), min(epi.nz.coef$coefs), length.out=7)[2:7])
       } else {
         num.col.vector <- c( seq(max(epi.nz.coef$coefs), 0, length.out=7), seq(0, min(epi.nz.coef$coefs), length.out=7)[2:7])
       }
-      legend.col.vector <- col.fun2(num.col.vector)
-      if( max(abs(epi.nz.coef$coefs)) < 1e-2 ) {
+      legend.col.vector <- col.fun2(num.col.vector) # actual vector of colors for epistatic legend
+      if( max(abs(epi.nz.coef$coefs)) < 1e-2 ) { # if data's largest magnitude value is < 1x10^-2 then use scientific notation for the legend
         text.col.vector1 <- as.character(scientific(num.col.vector, 2) )
-        if (max(epi.nz.coef$coefs) > 0 & min(epi.nz.coef$coefs) < 0 ) { text.col.vector1[7] <- "0" }
+        if (max(epi.nz.coef$coefs) > 0 & min(epi.nz.coef$coefs) < 0 ) { text.col.vector1[7] <- "0" } # if it spans zero then replace 0.00e1 with "0"
       } else {
         text.col.vector1 <- as.character(round(num.col.vector, n.dig) )
       }
-      text.col.vector1[c(2,3,5,6,8,9,11,12)] <- ""
-      text.col.vector2 <- c("green", "magenta")
-      # Individual plot function
+      text.col.vector1[c(2,3,5,6,8,9,11,12)] <- "" # eliminate several epistatic legend values from its label vector so it doesn't look too crowded
+      text.col.vector2 <- c("green", "magenta") # label vector for additive QTL legend
+      # Individual circular plot function
       circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
                              epi.int.bed1, epi.int.bed2, epi.bed1, epi.bed2, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef) {
         pdf(file=plot.path, width=8, height=8)
-        par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params.
+        par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params; note: if margins aren't all equal then plot won't be circular
         circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt )
-        par(cex = 1 )
-        if ( nrow(adt.nz.coef) != 0 ) {
+        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt ) # initialize circos plot w/ chromosomal axes
+        par(cex = 1 ) # change the font scalar back to 1
+        if ( nrow(adt.nz.coef) != 0 ) { # Plot additive QTL track if there are additive QTL for give trait
+          # First plot the light grey background and Y-axis dotted lines
           circos.genomicTrackPlotRegion(data = phys.lines, track.height=adt.tkHt, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {
             cell.xlim = get.cell.meta.data("cell.xlim")
             circos.lines(x=cell.xlim, y=c(value$l1, value$l1), lty=2, lwd=0.3, col="gray50")
             circos.lines(x=cell.xlim, y=c(value$l2, value$l2), lty=2, lwd=0.3, col="gray50" )
             circos.lines(x=cell.xlim, y=c(value$l3, value$l3), lty=2, lwd=0.3, col="gray50" )
           }, bg.col=bkgd.col, bg.border=NA )
+          # Then plot the QTL rectangles or bar plots
           circos.genomicTrackPlotRegion(data = adt.list, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
             i = getI(...) # assign the plotting iteration through the data list's elements to a counter
             if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp )
+              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp ) # QTL interval
             } else {
-              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 )
+              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 ) # QTL peak
             }
             circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
           }, bg.border=NA )
         }
+        # Finally draw the epistatic QTL chords
         circos.genomicTrackPlotRegion(data = bin.bed, ylim=c(0,1), track.height=bin.tkHt, cell.padding=c(0,0,0,0), panel.fun = function(region, value, ...) {
           circos.genomicRect(region, value, col="white", border=bin.col, ybottom=0, ytop=1, lwd=0.5, ...)
         }, bg.border=NA )
-        if ( nrow(epi.nz.coef) == 1 ) {
+        if ( nrow(epi.nz.coef) == 1 ) { # Deal with the exception when there's a single epistatic QTL
           if (epi.nz.coef$coefs < 0) {
-            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("magenta", 0.25), border=alpha("magenta", 0.25), lwd=0.5)
-            circos.genomicLink(epi.bed1, epi.bed2, col="magenta", border="magenta", lwd=0.5)
+            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("magenta", 0.25), border=alpha("magenta", 0.25), lwd=0.5) # QTL interval
+            circos.genomicLink(epi.bed1, epi.bed2, col="magenta", border="magenta", lwd=0.5) # QTL peak
           } else {
-            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("green", 0.25), border=alpha("green", 0.25), lwd=0.5)
-            circos.genomicLink(epi.bed1, epi.bed2, col="green", border="green", lwd=0.5)
+            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("green", 0.25), border=alpha("green", 0.25), lwd=0.5) # QTL interval
+            circos.genomicLink(epi.bed1, epi.bed2, col="green", border="green", lwd=0.5) # QTL peak
           }
         } else {
-          circos.genomicLink(epi.int.bed1, epi.int.bed2, col=col.vector1, border=col.vector1, lwd=0.5)
-          circos.genomicLink(epi.bed1, epi.bed2, col=col.vector2, border=col.vector2, lwd=0.5)
+          circos.genomicLink(epi.int.bed1, epi.int.bed2, col=col.vector1, border=col.vector1, lwd=0.5) # QTL interval
+          circos.genomicLink(epi.bed1, epi.bed2, col=col.vector2, border=col.vector2, lwd=0.5) # QTL peak
         }
-        # add legends
-        if ( nrow(epi.nz.coef) == 1 ) {
+        # add legends. for all of these I use several calls to legend() appropriately spaced to acheive the desired color box size; only 1 of these has the legend labels.
+        # epistatic legend
+        if ( nrow(epi.nz.coef) == 1 ) { # Deal with the exception when there's a single epistatic QTL
           if (epi.nz.coef$coefs < 0) {
             legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
             legend(x=0.855, y=0.98, legend="",  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
@@ -449,16 +455,19 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
           legend(x=0.84, y=0.98, legend=rep("", 13),  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
         }
         text(x=0.91, y=1, labels="Epistatic QTL", cex=0.9)
-        if ( nrow(adt.nz.coef) != 0 ) {
+        # additive legend and Y-axis labels
+        if ( nrow(adt.nz.coef) != 0 ) { # only plot legend and Y-axis labels if there are additive QTL
           legend(x=-0.98, y=0.98, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
           legend(x=-0.98, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
           legend(x=-1, y=0.962, legend=c("", ""), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
           legend(x=-1, y=0.98, legend=c("positive", "negative"), fill=text.col.vector2, border=NA, bty="n", bg="white", cex=0.7, x.intersp=1.2, y.intersp=1.2, xjust=0)
           text(x=-0.841, y=1, labels="Additive QTL", cex=0.9)
+          # Track labels A = additive, B = BINs, and C = epistatic
           text(x=0, y=0.89, offset=0, labels="A", cex=1.1)
           text(x=0, y=0.705, offset=0, labels="B", cex=1.1)
           text(x=0, y=0.64, offset=0, labels="C", cex=1.1)
-          if (max(adt.nz.coef$coefs) < 1e-2 ) {
+          # Y-axis labels for additive QTL track
+          if (max(adt.nz.coef$coefs) < 1e-2 ) { # use scientific notation when appropriate
             text(x=0, y=0.936, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs), 2)), cex=0.6)
             text(x=0, y=0.846, offset=0, labels=as.character(scientific(max(adt.nz.coef$coefs)/2, 2)), cex=0.6)
           } else {
@@ -466,7 +475,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
             text(x=0, y=0.846, offset=0, labels=as.character(round(max(adt.nz.coef$coefs)/2, n.dig)), cex=0.6)
           }
           text(x=0, y=0.756, offset=0, labels="0", cex=0.6)
-        } else {
+        } else { # If there are not additive QTL use these track labels, where A = BINs, and B = epistatic
           text(x=0, y=0.91, offset=0, labels="A", cex=1.1)
           text(x=0, y=0.8, offset=0, labels="B", cex=1.1)
         }
@@ -499,6 +508,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
   }
 }
 #-----------
+# Load epistatic QTL mapping results and plot
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
 plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2, 87, c(rep(1.5, 11), 6) )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
