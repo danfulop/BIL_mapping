@@ -360,21 +360,25 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         gen.lines <- cbind(gen.circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
         phys.lines <- cbind(circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
       }
+      # create 3 new variables to use for color names so they don't have to be re-typed every time I change something
+      col.top = "green4"
+      col.mid = "gray93"
+      col.bottom = "magenta4"
       # Epistatic chords' color functions and related
       if (min(epi.nz.coef$coefs) > 0 ) { # Set the color function depending on whether the QTL coefficient's range spans zero or not, and if not whether it's positive or negative
-        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
+        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
       } else if (max(epi.nz.coef$coefs) < 0 ) {
-        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
+        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
       } else {
-        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
+        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
       }
       col.vector1 <- col.fun1(epi.nz.coef$coefs) # vector of colors for the epistatic QTL's interval around peak, i.e. w/ transparency
       if (min(epi.nz.coef$coefs) > 0 ) { # same as above, but w/o transparency
-        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
+        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=0 )
       } else if (max(epi.nz.coef$coefs) < 0) {
-        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
+        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=0 )
       } else {
-        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
+        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=0 )
       }
       col.vector2 <- col.fun2(epi.nz.coef$coefs) # vector of colors for the epistatic QTL's peaks, i.e. w/o transparency
       # Epistatic legend color function and related
@@ -393,7 +397,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         text.col.vector1 <- as.character(round(num.col.vector, n.dig) )
       }
       text.col.vector1[c(2,3,5,6,8,9,11,12)] <- "" # eliminate several epistatic legend values from its label vector so it doesn't look too crowded
-      text.col.vector2 <- c("green", "magenta") # label vector for additive QTL legend
+      text.col.vector2 <- c(col.top, col.bottom) # label vector for additive QTL legend
       # Individual circular plot function
       circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
                              epi.int.bed1, epi.int.bed2, epi.bed1, epi.bed2, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef) {
@@ -414,9 +418,9 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
           circos.genomicTrackPlotRegion(data = adt.list, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
             i = getI(...) # assign the plotting iteration through the data list's elements to a counter
             if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp ) # QTL interval
+              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c(col.bottom, col.mid, col.top), transparency=transp ) # QTL interval
             } else {
-              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 ) # QTL peak
+              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c(col.bottom, col.mid, col.top), transparency=0 ) # QTL peak
             }
             circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
           }, bg.border=NA )
@@ -427,11 +431,11 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         }, bg.border=NA )
         if ( nrow(epi.nz.coef) == 1 ) { # Deal with the exception when there's a single epistatic QTL
           if (epi.nz.coef$coefs < 0) {
-            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("magenta", 0.25), border=alpha("magenta", 0.25), lwd=0.5) # QTL interval
-            circos.genomicLink(epi.bed1, epi.bed2, col="magenta", border="magenta", lwd=0.5) # QTL peak
+            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha(col.bottom, 0.25), border=alpha(col.bottom, 0.25), lwd=0.5) # QTL interval
+            circos.genomicLink(epi.bed1, epi.bed2, col=col.bottom, border=col.bottom, lwd=0.5) # QTL peak
           } else {
-            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("green", 0.25), border=alpha("green", 0.25), lwd=0.5) # QTL interval
-            circos.genomicLink(epi.bed1, epi.bed2, col="green", border="green", lwd=0.5) # QTL peak
+            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha(col.top, 0.25), border=alpha(col.top, 0.25), lwd=0.5) # QTL interval
+            circos.genomicLink(epi.bed1, epi.bed2, col=col.top, border=col.top, lwd=0.5) # QTL peak
           }
         } else {
           circos.genomicLink(epi.int.bed1, epi.int.bed2, col=col.vector1, border=col.vector1, lwd=0.5) # QTL interval
@@ -441,13 +445,13 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         # epistatic legend
         if ( nrow(epi.nz.coef) == 1 ) { # Deal with the exception when there's a single epistatic QTL
           if (epi.nz.coef$coefs < 0) {
-            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.855, y=0.98, legend="",  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.84, y=0.98, legend="",  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill=col.bottom, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.855, y=0.98, legend="",  fill=col.bottom, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.84, y=0.98, legend="",  fill=col.bottom, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
           } else {
-            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill="green", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.855, y=0.98, legend="",  fill="green", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.84, y=0.98, legend="",  fill="green", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill=col.top, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.855, y=0.98, legend="",  fill=col.top, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.84, y=0.98, legend="",  fill=col.top, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
           }
         } else {
           legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
