@@ -306,12 +306,14 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       # add gen. dist. info. for epistatic QTL
       tmp <- lapply(1:nrow(epi.nz.coef), function(i) { # create new columns with genetic distance information for the intervals
         gen.bin.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
+        gen.bin.mid1 <- gen.bin.stats$gen.bin.mid[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
         gen.bin.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
         gen.int0.95.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][1] ]
         gen.int0.95.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][2] ]
         gen.int0.90.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][1] ]
         gen.int0.90.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][2] ]
         gen.bin.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
+        gen.bin.mid2 <- gen.bin.stats$gen.bin.mid[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
         gen.bin.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
         gen.int0.95.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][1] ]
         gen.int0.95.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][2] ]
