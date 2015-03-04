@@ -223,6 +223,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
       epi.nz.coef <- droplevels(epi.nz.coef)
       if ( nrow(epi.nz.coef)==0 & nrow(adt.nz.coef)!=0 ) { next }
+      epi.nz.coef <- epi.nz.coef[with(epi.nz.coef, order(abs(coefs)) ), ] # reorder by the absolute coefficient magnitude so that the higher mag. coefs. are plotted last
       # setup additive data
       adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) ) # trim and coerce to numeric certain columns
       adt.nz.coef$color[adt.nz.coef$coefs > 0] <- 1
