@@ -116,8 +116,9 @@ plot.map(FT.map, gen.bin.stats, dat.name="FT")
 
 # Function to generate physical distance plots of one whole dataset, with 1 plot per trait
 #-----------
+setwd("/Users/Dani/UCD/BILs/")
 map.dat=comp.map; dat.name="comp"; i=1
-plot.map <- function(map.dat, bin.stats, dat.name) {
+plot.map <- function(map.dat, bin.stats, dat.name, reduced) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
@@ -205,10 +206,10 @@ gen.circ.init$chr <- as.factor(gen.circ.init$chr)
 gen.circ.init$start <- as.numeric(gen.circ.init$start)
 gen.circ.init$end <- as.numeric(gen.circ.init$end)
 
-# Functions to plot epistatic results
+# Function to plot epistatic results, iterating through a list of mapping results of phenotypic traits
 #---------
-# Function to iterate through a list of mapping results of phenotypic traits
-plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree) {
+#map.dat=comp.epi.map; dat.name="comp"; n.dig=2; start.degree=87; gap.degree=c(rep(1.5, 11), 6); i=2; reduced=TRUE
+plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree, reduced=FALSE) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
