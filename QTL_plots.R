@@ -366,9 +366,6 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       gen.bin.bed <- with(gen.bin.stats, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end) ) # BED-like data.frame specifying gen.bin structure
       # set up plotting parameters to reuse, such as track.margin, etc.
       init.tkHt = 0.05 # track height (in proportion of the circle's radius) of the chromosomal distance track used to initialize the circos plot
-      # the following 2 params. are now set in the bigger function; they're kept here for commenting purposes
-#       gap.degree = c(rep(1.5, 11), 7) # vector of gap angles between chromosomes in degrees; the last gap which btw the last and 1st chromosome is larger in order to accomodate the axis and track labels
-#       start.degree = 86.5 # counter-clockwise angle from right-side horiozntal line at which circos plot begins; in order for the plot to be centered this angle has to be coordinated with the gap.degree
       bottom.margin = 0.005 # bottom margin between tracks (in proportion of the circle's radius)
       adt.tkHt = 0.20 # additive track height (in proportion of the circle's radius)
       cpad = 0.01 # cell padding on left and right
