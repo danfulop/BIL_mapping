@@ -544,4 +544,4 @@ plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, g
 #load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
 plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/FT.epi.map.Rdata")
-plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
+plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
