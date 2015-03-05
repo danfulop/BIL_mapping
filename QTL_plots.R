@@ -426,7 +426,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         pdf(file=plot.path, width=8, height=8)
         par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params; note: if margins aren't all equal then plot won't be circular
         circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt ) # initialize circos plot w/ chromosomal axes
+        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt, major.by=major.by ) # initialize circos plot w/ chromosomal axes
         par(cex = 1 ) # change the font scalar back to 1
         if ( nrow(adt.nz.coef) != 0 ) { # Plot additive QTL track if there are additive QTL for give trait
           # First plot the light grey background and Y-axis dotted lines
