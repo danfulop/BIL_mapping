@@ -116,8 +116,9 @@ plot.map(FT.map, gen.bin.stats, dat.name="FT")
 
 # Function to generate physical distance plots of one whole dataset, with 1 plot per trait
 #-----------
+setwd("/Users/Dani/UCD/BILs/")
 map.dat=comp.map; dat.name="comp"; i=1
-plot.map <- function(map.dat, bin.stats, dat.name) {
+plot.map <- function(map.dat, bin.stats, dat.name, reduced) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
@@ -205,10 +206,10 @@ gen.circ.init$chr <- as.factor(gen.circ.init$chr)
 gen.circ.init$start <- as.numeric(gen.circ.init$start)
 gen.circ.init$end <- as.numeric(gen.circ.init$end)
 
-# Functions to plot epistatic results
+# Function to plot epistatic results, iterating through a list of mapping results of phenotypic traits
 #---------
-# Function to iterate through a list of mapping results of phenotypic traits
-plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree) {
+#map.dat=comp.epi.map; dat.name="comp"; n.dig=2; start.degree=87; gap.degree=c(rep(1.5, 11), 6); i=2; reduced=TRUE
+plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init, gen.circ.init, n.dig, start.degree, gap.degree, reduced=FALSE) {
   for(i in 1:length(map.dat) ) {
     if(map.dat[[i]]$n.coef==0) {
       next
@@ -222,6 +223,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       epi.nz.coef <- nz.coef[grep("//", nz.coef$chr), ]
       epi.nz.coef <- droplevels(epi.nz.coef)
       if ( nrow(epi.nz.coef)==0 & nrow(adt.nz.coef)!=0 ) { next }
+      epi.nz.coef <- epi.nz.coef[with(epi.nz.coef, order(abs(coefs)) ), ] # reorder by the absolute coefficient magnitude so that the higher mag. coefs. are plotted last
       # setup additive data
       adt.nz.coef[, c(3:5,8,9,11,12)] <- lapply(adt.nz.coef[, c(3:5,8,9,11,12)], function(f) as.numeric(as.character(str_trim(f))) ) # trim and coerce to numeric certain columns
       adt.nz.coef$color[adt.nz.coef$coefs > 0] <- 1
@@ -301,6 +303,50 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       epi.nz.coef$int952max <- laply(epi.nz.coef$int0.952, function(x) str_split(x, ":")[[1]][2])
       epi.nz.coef$int902min <- laply(epi.nz.coef$int0.902, function(x) str_split(x, ":")[[1]][1])
       epi.nz.coef$int902max <- laply(epi.nz.coef$int0.902, function(x) str_split(x, ":")[[1]][2])
+      # add gen. dist. info. for epistatic QTL
+      tmp <- lapply(1:nrow(epi.nz.coef), function(i) { # create new columns with genetic distance information for the intervals
+        gen.bin.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
+        gen.bin.mid1 <- gen.bin.stats$gen.bin.mid[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
+        gen.bin.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
+        gen.int0.95.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][1] ]
+        gen.int0.95.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][2] ]
+        gen.int0.90.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][1] ]
+        gen.int0.90.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][2] ]
+        gen.bin.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
+        gen.bin.mid2 <- gen.bin.stats$gen.bin.mid[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
+        gen.bin.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
+        gen.int0.95.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][1] ]
+        gen.int0.95.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][2] ]
+        gen.int0.90.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][1] ]
+        gen.int0.90.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][2] ]
+        c(gen.bin.start1, gen.bin.mid1, gen.bin.end1, gen.int0.95.start1, gen.int0.95.end1, gen.int0.90.start1, gen.int0.90.end1, gen.bin.start2,
+          gen.bin.mid2, gen.bin.end2, gen.int0.95.start2, gen.int0.95.end2, gen.int0.90.start2, gen.int0.90.end2)
+      })
+      gen.dist.cols <- do.call(rbind, tmp)
+      colnames(gen.dist.cols) <- c('gen.bin.start1', 'gen.bin.end1', 'gen.bin.mid1','gen.int0.95.start1', 'gen.int0.95.end1', 'gen.int0.90.start1', 'gen.int0.90.end1',
+                                   'gen.bin.start2', 'gen.bin.mid2', 'gen.bin.end2','gen.int0.95.start2', 'gen.int0.95.end2', 'gen.int0.90.start2', 'gen.int0.90.end2')
+      epi.nz.coef <- cbind(epi.nz.coef, gen.dist.cols)
+      # Reduce the # of QTL (rows) in epi.nz.coef data.frame is reduced=TRUE by genDist, coef magnitude, and max 10
+      epi.nz.coef[with(epi.nz.coef, which(chr1==chr2) ), 'gen.dist'] <- epi.nz.coef$gen.bin.mid2[with(epi.nz.coef, which(chr1==chr2) )] - epi.nz.coef$gen.bin.mid1[with(epi.nz.coef, which(chr1==chr2) )]
+      epi.nz.coef[with(epi.nz.coef, which(chr1!=chr2) ), 'gen.dist'] <- NA
+      if (reduced) {
+        epi.nz.coef <- epi.nz.coef[with(epi.nz.coef, gen.dist >= 20 | is.na(gen.dist) ), ]
+        if (nrow(epi.nz.coef) > 10) {
+          epi.nz.coef <- epi.nz.coef[(nrow(epi.nz.coef)-9):nrow(epi.nz.coef), ]
+        }
+#         range.cutoff <- with(epi.nz.coef, ((max(abs(coefs)) - min(abs(coefs)) ) * 0.60) + min(abs(coefs)) ) # cutoff for top 25% of coefficient range
+#         epi.nz.coef <- epi.nz.coef[with(epi.nz.coef, abs(coefs) >= range.cutoff), ]
+#         if (nrow(epi.nz.coef) < 40) {
+#           n <- round(nrow(epi.nz.coef) / 4) - 1 # number of rows to keep from bottom up to keep the top 25% of QTLs
+#           epi.nz.coef <- epi.nz.coef[(nrow(epi.nz.coef) - n):nrow(epi.nz.coef), ]
+#         } else {
+#           epi.nz.coef <- epi.nz.coef[(nrow(epi.nz.coef)-9):nrow(epi.nz.coef), ]
+#         }
+        save(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiReducedQtl.Rdata" ) )
+        write.csv(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiReducedQtl.csv" ), quote=FALSE, row.names=FALSE)
+      }
+#       save(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiQtl.Rdata" ) )
+#       write.csv(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiQtl.csv" ), quote=FALSE, row.names=FALSE)
       # make 2 bed-like files for the links/chords for epistatic QTLs, ditto for each of the correlation intervals
       epi1.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=bin.start1, end=bin.end1, coefs=coefs) )
       epi2.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=bin.start2, end=bin.end2, coefs=coefs) )
@@ -308,27 +354,6 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       epi952.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.95.start2, end=int0.95.end2, coefs=coefs) )
       epi901.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=int0.90.start1, end=int0.90.end1, coefs=coefs) )
       epi902.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.90.start2, end=int0.90.end2, coefs=coefs) )
-      # add gen. dist. info. for epistatic QTL
-      tmp <- lapply(1:nrow(epi.nz.coef), function(i) { # create new columns with genetic distance information for the intervals
-        gen.bin.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
-        gen.bin.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin1[i]) ]
-        gen.int0.95.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][1] ]
-        gen.int0.95.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.951[i], ":")[[1]][2] ]
-        gen.int0.90.start1 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][1] ]
-        gen.int0.90.end1 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.901[i], ":")[[1]][2] ]
-        gen.bin.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
-        gen.bin.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==as.character(epi.nz.coef$bin2[i]) ]
-        gen.int0.95.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][1] ]
-        gen.int0.95.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][2] ]
-        gen.int0.90.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][1] ]
-        gen.int0.90.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][2] ]
-        c(gen.bin.start1, gen.bin.end1, gen.int0.95.start1, gen.int0.95.end1, gen.int0.90.start1, gen.int0.90.end1, gen.bin.start2,
-          gen.bin.end2, gen.int0.95.start2, gen.int0.95.end2, gen.int0.90.start2, gen.int0.90.end2)
-      })
-      gen.dist.cols <- do.call(rbind, tmp)
-      colnames(gen.dist.cols) <- c('gen.bin.start1', 'gen.bin.end1','gen.int0.95.start1', 'gen.int0.95.end1', 'gen.int0.90.start1', 'gen.int0.90.end1',
-                                   'gen.bin.start2', 'gen.bin.end2','gen.int0.95.start2', 'gen.int0.95.end2', 'gen.int0.90.start2', 'gen.int0.90.end2')
-      epi.nz.coef <- cbind(epi.nz.coef, gen.dist.cols)
       # make 2 bed-like files for the links/chords for epistatic QTLs, ditto for each of the correlation intervals
       gen.epi1.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=gen.bin.start1, end=gen.bin.end1, coefs=coefs) )
       gen.epi2.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.bin.start2, end=gen.bin.end2, coefs=coefs) )
@@ -341,17 +366,14 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       gen.bin.bed <- with(gen.bin.stats, data.frame(chr=chr, start=gen.bin.start, end=gen.bin.end) ) # BED-like data.frame specifying gen.bin structure
       # set up plotting parameters to reuse, such as track.margin, etc.
       init.tkHt = 0.05 # track height (in proportion of the circle's radius) of the chromosomal distance track used to initialize the circos plot
-      # the following 2 params. are now set in the bigger function; they're kept here for commenting purposes
-#       gap.degree = c(rep(1.5, 11), 7) # vector of gap angles between chromosomes in degrees; the last gap which btw the last and 1st chromosome is larger in order to accomodate the axis and track labels
-#       start.degree = 86.5 # counter-clockwise angle from right-side horiozntal line at which circos plot begins; in order for the plot to be centered this angle has to be coordinated with the gap.degree
       bottom.margin = 0.005 # bottom margin between tracks (in proportion of the circle's radius)
       adt.tkHt = 0.20 # additive track height (in proportion of the circle's radius)
       cpad = 0.01 # cell padding on left and right
       bin.tkHt = 0.07 # BIN structure track height (in proportion of the circle's radius)
-      transp = 0.75 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha
+      transp = 0.5 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha. 0.75 was the old value, when the mid color was black
       bkgd.col = "gray90" # gray95 works well too, but it's not very visible in some monitors
       init.cex = 1.35 # font size scalar for initializing the circos plot
-      major.by=20 # Major tick mark every 20 cM; only used for the genetic distance plots
+#       major.by=20 # Major tick mark every 20 cM or 20 MB
       bin.col=alpha("black", 0.5) # color used for the BINs' rectangles, i.e. black w/ 50% trans
       smidgen=1e-13 # very small number by which to extend color scale edges in order to circumvent occasional issue w/ rgb() whereby value to convert to color is outside of 0-1 range, when it should be == 1.
       if ( nrow(adt.nz.coef)==0 ) {   # Y-axis lines for additive QTL track are NULL is there are no additive QTL
@@ -360,21 +382,25 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         gen.lines <- cbind(gen.circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
         phys.lines <- cbind(circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
       }
+      # create 3 new variables to use for color names so they don't have to be re-typed every time I change something
+      col.top = "green4"
+      col.mid = "gray92"
+      col.bottom = "magenta4"
       # Epistatic chords' color functions and related
       if (min(epi.nz.coef$coefs) > 0 ) { # Set the color function depending on whether the QTL coefficient's range spans zero or not, and if not whether it's positive or negative
-        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
+        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
       } else if (max(epi.nz.coef$coefs) < 0 ) {
-        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
+        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
       } else {
-        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=transp )
+        col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
       }
       col.vector1 <- col.fun1(epi.nz.coef$coefs) # vector of colors for the epistatic QTL's interval around peak, i.e. w/ transparency
       if (min(epi.nz.coef$coefs) > 0 ) { # same as above, but w/o transparency
-        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
+        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=0 )
       } else if (max(epi.nz.coef$coefs) < 0) {
-        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
+        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((min(epi.nz.coef$coefs)-max(epi.nz.coef$coefs))/2)+max(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=0 )
       } else {
-        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c("magenta", "black", "green"), transparency=0 )
+        col.fun2 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen,0,max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=0 )
       }
       col.vector2 <- col.fun2(epi.nz.coef$coefs) # vector of colors for the epistatic QTL's peaks, i.e. w/o transparency
       # Epistatic legend color function and related
@@ -393,14 +419,14 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         text.col.vector1 <- as.character(round(num.col.vector, n.dig) )
       }
       text.col.vector1[c(2,3,5,6,8,9,11,12)] <- "" # eliminate several epistatic legend values from its label vector so it doesn't look too crowded
-      text.col.vector2 <- c("green", "magenta") # label vector for additive QTL legend
+      text.col.vector2 <- c(col.top, col.bottom) # label vector for additive QTL legend
       # Individual circular plot function
-      circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
+      circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
                              epi.int.bed1, epi.int.bed2, epi.bed1, epi.bed2, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef) {
         pdf(file=plot.path, width=8, height=8)
         par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params; note: if margins aren't all equal then plot won't be circular
         circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
-        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt ) # initialize circos plot w/ chromosomal axes
+        circos.genomicInitialize(circ.init, sector.width=circ.init$end, track.height=init.tkHt, major.by=major.by ) # initialize circos plot w/ chromosomal axes
         par(cex = 1 ) # change the font scalar back to 1
         if ( nrow(adt.nz.coef) != 0 ) { # Plot additive QTL track if there are additive QTL for give trait
           # First plot the light grey background and Y-axis dotted lines
@@ -414,9 +440,9 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
           circos.genomicTrackPlotRegion(data = adt.list, track.height=adt.tkHt, track.index=2, cell.padding=c(cpad,0,cpad,0), ylim=adt.ylim, panel.fun = function(region, value, ...) {      
             i = getI(...) # assign the plotting iteration through the data list's elements to a counter
             if (i == 1) { # have 75% transparency if it's 1st plotting iteration, and 0 transp. otherwise
-              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=transp ) # QTL interval
+              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c(col.bottom, col.mid, col.top), transparency=transp ) # QTL interval
             } else {
-              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c("magenta", "black", "green"), transparency=0 ) # QTL peak
+              sign.col = colorRamp2(breaks=c(-1,0,1), colors=c(col.bottom, col.mid, col.top), transparency=0 ) # QTL peak
             }
             circos.genomicRect(region, value, col=sign.col(value$color), ybottom=0, ytop.column=1, border=sign.col(value$color), ...)
           }, bg.border=NA )
@@ -427,11 +453,11 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         }, bg.border=NA )
         if ( nrow(epi.nz.coef) == 1 ) { # Deal with the exception when there's a single epistatic QTL
           if (epi.nz.coef$coefs < 0) {
-            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("magenta", 0.25), border=alpha("magenta", 0.25), lwd=0.5) # QTL interval
-            circos.genomicLink(epi.bed1, epi.bed2, col="magenta", border="magenta", lwd=0.5) # QTL peak
+            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha(col.bottom, 0.25), border=alpha(col.bottom, 0.25), lwd=0.5) # QTL interval
+            circos.genomicLink(epi.bed1, epi.bed2, col=col.bottom, border=col.bottom, lwd=0.5) # QTL peak
           } else {
-            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha("green", 0.25), border=alpha("green", 0.25), lwd=0.5) # QTL interval
-            circos.genomicLink(epi.bed1, epi.bed2, col="green", border="green", lwd=0.5) # QTL peak
+            circos.genomicLink(epi.int.bed1, epi.int.bed2, col=alpha(col.top, 0.25), border=alpha(col.top, 0.25), lwd=0.5) # QTL interval
+            circos.genomicLink(epi.bed1, epi.bed2, col=col.top, border=col.top, lwd=0.5) # QTL peak
           }
         } else {
           circos.genomicLink(epi.int.bed1, epi.int.bed2, col=col.vector1, border=col.vector1, lwd=0.5) # QTL interval
@@ -441,13 +467,13 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         # epistatic legend
         if ( nrow(epi.nz.coef) == 1 ) { # Deal with the exception when there's a single epistatic QTL
           if (epi.nz.coef$coefs < 0) {
-            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.855, y=0.98, legend="",  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.84, y=0.98, legend="",  fill="magenta", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill=col.bottom, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.855, y=0.98, legend="",  fill=col.bottom, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.84, y=0.98, legend="",  fill=col.bottom, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
           } else {
-            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill="green", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.855, y=0.98, legend="",  fill="green", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
-            legend(x=0.84, y=0.98, legend="",  fill="green", border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.87, y=0.98, legend=text.col.vector1[1],  fill=col.top, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.855, y=0.98, legend="",  fill=col.top, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
+            legend(x=0.84, y=0.98, legend="",  fill=col.top, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
           }
         } else {
           legend(x=0.87, y=0.98, legend=text.col.vector1,  fill=legend.col.vector, border=NA, bty="n", bg="white", y.intersp=0.5, x.intersp=0.2, cex=0.6, xjust=0)
@@ -485,37 +511,37 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       # Physical distance plots
       # 0.90 correlation
       physDist.plot.path="/Users/Dani/UCD/BILs/physDist.epi.plots/"
-      plot.path <- paste0(physDist.plot.path, "physDist.0.90corr/", dat.name, ".", trait.name, ".physDist.0.90corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list90, bin.bed, bin.tkHt,
+      plot.path <- paste0(physDist.plot.path, "physDist.0.90corr/", dat.name, ".", trait.name, ".physDist.0.90corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by=20e6, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list90, bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=epi901.bed, epi.int.bed2=epi902.bed, epi.bed1=epi1.bed, epi.bed2=epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)
       # 0.95 correlation
       physDist.plot.path="/Users/Dani/UCD/BILs/physDist.epi.plots/"
-      plot.path <- paste0(physDist.plot.path, "physDist.0.95corr/", dat.name, ".", trait.name, ".physDist.0.95corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list95, bin.bed, bin.tkHt,
+      plot.path <- paste0(physDist.plot.path, "physDist.0.95corr/", dat.name, ".", trait.name, ".physDist.0.95corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by=20e6, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list95, bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=epi951.bed, epi.int.bed2=epi952.bed, epi.bed1=epi1.bed, epi.bed2=epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)
       # Genetic distance plots
       # 0.90 correlation
       genDist.plot.path="/Users/Dani/UCD/BILs/genDist.epi.plots/"
-      plot.path <- paste0(genDist.plot.path, "genDist.0.90corr/", dat.name, ".", trait.name, ".genDist.0.90corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list90, bin.bed=gen.bin.bed, bin.tkHt,
+      plot.path <- paste0(genDist.plot.path, "genDist.0.90corr/", dat.name, ".", trait.name, ".genDist.0.90corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, major.by=20, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list90, bin.bed=gen.bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=gen.epi901.bed, epi.int.bed2=gen.epi902.bed, epi.bed1=gen.epi1.bed, epi.bed2=gen.epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)      
       # 0.95 correlation
       genDist.plot.path="/Users/Dani/UCD/BILs/genDist.epi.plots/"
-      plot.path <- paste0(genDist.plot.path, "genDist.0.95corr/", dat.name, ".", trait.name, ".genDist.0.95corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list95, bin.bed=gen.bin.bed, bin.tkHt,
+      plot.path <- paste0(genDist.plot.path, "genDist.0.95corr/", dat.name, ".", trait.name, ".genDist.0.95corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, major.by=20, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list95, bin.bed=gen.bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=gen.epi951.bed, epi.int.bed2=gen.epi952.bed, epi.bed1=gen.epi1.bed, epi.bed2=gen.epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)      
     }
   }
 }
 #-----------
 # Load epistatic QTL mapping results and plot
-load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
-plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2, 87, c(rep(1.5, 11), 6) )
+#load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
+plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2, 87, c(rep(1.5, 11), 6), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
-plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
+plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/sym.epi.map.Rdata")
-plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
-load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
-plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
+plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
+#load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
+plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/FT.epi.map.Rdata")
 plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )

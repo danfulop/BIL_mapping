@@ -9,7 +9,7 @@ library(foreach)
 
 # Load Leaf complexity dataset
 setwd("/Users/Dani/UCD/BILs/leaf_traits/")
-load data tables
+# load data tables
 comp <- read.delim("BIL.complexity.all.2011.txt")
 head(comp)  
 summary(comp)
@@ -156,7 +156,7 @@ save(asym.list, file="asym.list.Rdata") # Save results list
 #--------
 
 # Flowering time data
-load("FT.BIL.Rdata")
+load("~/UCD/BILs/IL_BIL_flowering/Field_flowering_time/FT.BIL.Rdata")
 FT.BIL <- merge(FT.BIL, labels, by="plant")
 FT.BIL <- FT.BIL[,-c(5:7)] # # discard unneeded columns: row, col, block.y, and genotype columns
 names(FT.BIL)[4] <- "block" # rename block.x into block
