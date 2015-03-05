@@ -319,13 +319,41 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
         gen.int0.95.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.952[i], ":")[[1]][2] ]
         gen.int0.90.start2 <- gen.bin.stats$gen.bin.start[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][1] ]
         gen.int0.90.end2 <- gen.bin.stats$gen.bin.end[gen.bin.stats$bin==str_split(epi.nz.coef$int0.902[i], ":")[[1]][2] ]
-        c(gen.bin.start1, gen.bin.end1, gen.int0.95.start1, gen.int0.95.end1, gen.int0.90.start1, gen.int0.90.end1, gen.bin.start2,
-          gen.bin.end2, gen.int0.95.start2, gen.int0.95.end2, gen.int0.90.start2, gen.int0.90.end2)
+        c(gen.bin.start1, gen.bin.mid1, gen.bin.end1, gen.int0.95.start1, gen.int0.95.end1, gen.int0.90.start1, gen.int0.90.end1, gen.bin.start2,
+          gen.bin.mid2, gen.bin.end2, gen.int0.95.start2, gen.int0.95.end2, gen.int0.90.start2, gen.int0.90.end2)
       })
       gen.dist.cols <- do.call(rbind, tmp)
-      colnames(gen.dist.cols) <- c('gen.bin.start1', 'gen.bin.end1','gen.int0.95.start1', 'gen.int0.95.end1', 'gen.int0.90.start1', 'gen.int0.90.end1',
-                                   'gen.bin.start2', 'gen.bin.end2','gen.int0.95.start2', 'gen.int0.95.end2', 'gen.int0.90.start2', 'gen.int0.90.end2')
+      colnames(gen.dist.cols) <- c('gen.bin.start1', 'gen.bin.end1', 'gen.bin.mid1','gen.int0.95.start1', 'gen.int0.95.end1', 'gen.int0.90.start1', 'gen.int0.90.end1',
+                                   'gen.bin.start2', 'gen.bin.mid2', 'gen.bin.end2','gen.int0.95.start2', 'gen.int0.95.end2', 'gen.int0.90.start2', 'gen.int0.90.end2')
       epi.nz.coef <- cbind(epi.nz.coef, gen.dist.cols)
+      # Reduce the # of QTL (rows) in epi.nz.coef data.frame is reduced=TRUE by genDist, coef magnitude, and max 10
+      epi.nz.coef[with(epi.nz.coef, which(chr1==chr2) ), 'gen.dist'] <- epi.nz.coef$gen.bin.mid2[with(epi.nz.coef, which(chr1==chr2) )] - epi.nz.coef$gen.bin.mid1[with(epi.nz.coef, which(chr1==chr2) )]
+      epi.nz.coef[with(epi.nz.coef, which(chr1!=chr2) ), 'gen.dist'] <- NA
+      if (reduced) {
+        epi.nz.coef <- epi.nz.coef[with(epi.nz.coef, gen.dist >= 20 | is.na(gen.dist) ), ]
+        if (nrow(epi.nz.coef) > 10) {
+          epi.nz.coef <- epi.nz.coef[(nrow(epi.nz.coef)-9):nrow(epi.nz.coef), ]
+        }
+#         range.cutoff <- with(epi.nz.coef, ((max(abs(coefs)) - min(abs(coefs)) ) * 0.60) + min(abs(coefs)) ) # cutoff for top 25% of coefficient range
+#         epi.nz.coef <- epi.nz.coef[with(epi.nz.coef, abs(coefs) >= range.cutoff), ]
+#         if (nrow(epi.nz.coef) < 40) {
+#           n <- round(nrow(epi.nz.coef) / 4) - 1 # number of rows to keep from bottom up to keep the top 25% of QTLs
+#           epi.nz.coef <- epi.nz.coef[(nrow(epi.nz.coef) - n):nrow(epi.nz.coef), ]
+#         } else {
+#           epi.nz.coef <- epi.nz.coef[(nrow(epi.nz.coef)-9):nrow(epi.nz.coef), ]
+#         }
+        save(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiReducedQtl.Rdata" ) )
+        write.csv(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiReducedQtl.csv" ), quote=FALSE, row.names=FALSE)
+      }
+#       save(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiQtl.Rdata" ) )
+#       write.csv(epi.nz.coef, file=paste0(getwd(),"/",dat.name,".",trait.name,".epiQtl.csv" ), quote=FALSE, row.names=FALSE)
+      # make 2 bed-like files for the links/chords for epistatic QTLs, ditto for each of the correlation intervals
+      epi1.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=bin.start1, end=bin.end1, coefs=coefs) )
+      epi2.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=bin.start2, end=bin.end2, coefs=coefs) )
+      epi951.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=int0.95.start1, end=int0.95.end1, coefs=coefs) )
+      epi952.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.95.start2, end=int0.95.end2, coefs=coefs) )
+      epi901.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=int0.90.start1, end=int0.90.end1, coefs=coefs) )
+      epi902.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=int0.90.start2, end=int0.90.end2, coefs=coefs) )
       # make 2 bed-like files for the links/chords for epistatic QTLs, ditto for each of the correlation intervals
       gen.epi1.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=gen.bin.start1, end=gen.bin.end1, coefs=coefs) )
       gen.epi2.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.bin.start2, end=gen.bin.end2, coefs=coefs) )
