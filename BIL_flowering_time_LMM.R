@@ -69,10 +69,35 @@ FT.BIL$BIL <- as.factor(FT.BIL$BIL)
 FT.BIL$BIL <- relevel(FT.BIL$BIL, ref="M82")
 summary(FT.BIL)
 dim(FT.BIL) # 1665    6
+sort(unique(FT.BIL$BIL[which(is.na(FT.BIL$days))]))
+FT.BIL_all <- FT.BIL
+
 FT.BIL <- na.omit(FT.BIL)
 dim(FT.BIL) # 1539    6
 FT.BIL <- droplevels(FT.BIL)
 save(FT.BIL, file="FT.BIL.Rdata")
+
+# Deprecated code
+#--------
+# ## ADD simulated data for very late-flowering BILs
+# # Sample from rnorm(n, mean = 128 days, sd = 6.15 -- the average within line st.dev.)
+# # 128 days is 3*stdev + 1 day beyond the last measured day (i.e. 109 days).
+# lateFT.vector # vector of very late-flowering BILs that were still in the dataset after final genotyping
+# # [1] "BIL_157" "BIL_498" "BIL_321" "BIL_525" "BIL_416" "BIL_294" "BIL_327"
+# # the lateFT.vector vector comes from the pairs_plot.R script
+# for(i in 1:length(lateFT.vector) ) {
+#   plants <- as.character(FT.BIL_all$plant[FT.BIL_all$BIL==lateFT.vector[i] ])
+#   for(j in 1:length(plants) ) {
+#     FT.BIL_all$days[FT.BIL_all$plant == plants[j] ] <- rnorm(1, mean = 128, sd = 6.15)
+#   }
+# }
+# 
+# FT.BIL <- FT.BIL_all
+# FT.BIL <- na.omit(FT.BIL)
+# dim(FT.BIL) # 1549    6  , i.e. not all 7 BILs "imputed" above have plants that were alive it seems, as the total only increased by 10 and not by 14
+# FT.BIL <- droplevels(FT.BIL)
+# save(FT.BIL, file="FT.BIL.Rdata")
+#---------
 
 ## Modeling column-wise to get a sense for the compaction effect
 
