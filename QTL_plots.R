@@ -370,10 +370,10 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       adt.tkHt = 0.20 # additive track height (in proportion of the circle's radius)
       cpad = 0.01 # cell padding on left and right
       bin.tkHt = 0.07 # BIN structure track height (in proportion of the circle's radius)
-      transp = 0.75 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha
+      transp = 0.5 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha. 0.75 was the old value, when the mid color was black
       bkgd.col = "gray90" # gray95 works well too, but it's not very visible in some monitors
       init.cex = 1.35 # font size scalar for initializing the circos plot
-      major.by=20 # Major tick mark every 20 cM; only used for the genetic distance plots
+#       major.by=20 # Major tick mark every 20 cM or 20 MB
       bin.col=alpha("black", 0.5) # color used for the BINs' rectangles, i.e. black w/ 50% trans
       smidgen=1e-13 # very small number by which to extend color scale edges in order to circumvent occasional issue w/ rgb() whereby value to convert to color is outside of 0-1 range, when it should be == 1.
       if ( nrow(adt.nz.coef)==0 ) {   # Y-axis lines for additive QTL track are NULL is there are no additive QTL
@@ -384,7 +384,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       }
       # create 3 new variables to use for color names so they don't have to be re-typed every time I change something
       col.top = "green4"
-      col.mid = "gray93"
+      col.mid = "gray92"
       col.bottom = "magenta4"
       # Epistatic chords' color functions and related
       if (min(epi.nz.coef$coefs) > 0 ) { # Set the color function depending on whether the QTL coefficient's range spans zero or not, and if not whether it's positive or negative
@@ -421,7 +421,7 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       text.col.vector1[c(2,3,5,6,8,9,11,12)] <- "" # eliminate several epistatic legend values from its label vector so it doesn't look too crowded
       text.col.vector2 <- c(col.top, col.bottom) # label vector for additive QTL legend
       # Individual circular plot function
-      circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
+      circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
                              epi.int.bed1, epi.int.bed2, epi.bed1, epi.bed2, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef) {
         pdf(file=plot.path, width=8, height=8)
         par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params; note: if margins aren't all equal then plot won't be circular
