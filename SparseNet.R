@@ -57,10 +57,12 @@ map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   response <- as.vector(as.matrix(trait.dat['predPlusResid'], rownames.force=F)) # response vector for sparsenet, i.e. Ys
   tmp <- vector("list", length=10) # temp list for storing 1se parameters
   tmp2 <- vector("list", length=10) # temp list for storing min parameters
+  tmp3 <- vector("list", length=10)
   for(j in 1:10) { # redo cross-validation 10 times to get more "stable" tuning parameters
     cv.sp <- cv.sparsenet(x=geno.mat, y=response, lambda=lambda.manual, ngamma=36, nfolds=6, warm="both") # cross-validation
     tmp[[j]] <- cv.sp$parms.1se # CV params. for 1 std. dev. away from min.
     tmp2[[j]] <- cv.sp$parms.min # CV params.
+    tmp3[[j]] <- cv.sp
   }
   mean.gamma <- mean(unlist(tmp)[seq(1,19,2)]) # mean gamma
   mean.lambda <- mean(unlist(tmp)[seq(2,20,2)]) # mean lambda
@@ -73,8 +75,8 @@ map.fx <- function(datl, ln, gt.tab, bin.stats, lambda.manual) {
   coefs <- sp.fit$coefficients$g9$beta[,1] # save preferred set of coefficients
   coefs <- cbind(bin.stats, coefs) # combine with bin information
   non.zero.coefs <- coefs[coefs$coefs!=0,] # non-zero coefficients
-  n.coef <- nrow(non.zero.coefs) # number of non-zero coefficients **this prob. fails b/c it should be nrow, b/c now it's a data.frame
-  results <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, start.lambda.seq=start.lambda.seq, sp.fit=sp.fit)
+  n.coef <- nrow(non.zero.coefs) # number of non-zero coefficients
+  results <- list(coefs=coefs, non.zero.coefs=non.zero.coefs, n.coef=n.coef, gamma=mean.gamma, lambda=mean.lambda, start.lambda.seq=start.lambda.seq, sp.fit=sp.fit, cv.list=tmp3)
   results
 }
 #----

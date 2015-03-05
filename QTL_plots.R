@@ -511,37 +511,37 @@ plot.epi.map <- function(map.dat, bin.stats, gen.bin.stats, dat.name, circ.init,
       # Physical distance plots
       # 0.90 correlation
       physDist.plot.path="/Users/Dani/UCD/BILs/physDist.epi.plots/"
-      plot.path <- paste0(physDist.plot.path, "physDist.0.90corr/", dat.name, ".", trait.name, ".physDist.0.90corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list90, bin.bed, bin.tkHt,
+      plot.path <- paste0(physDist.plot.path, "physDist.0.90corr/", dat.name, ".", trait.name, ".physDist.0.90corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by=20e6, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list90, bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=epi901.bed, epi.int.bed2=epi902.bed, epi.bed1=epi1.bed, epi.bed2=epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)
       # 0.95 correlation
       physDist.plot.path="/Users/Dani/UCD/BILs/physDist.epi.plots/"
-      plot.path <- paste0(physDist.plot.path, "physDist.0.95corr/", dat.name, ".", trait.name, ".physDist.0.95corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list95, bin.bed, bin.tkHt,
+      plot.path <- paste0(physDist.plot.path, "physDist.0.95corr/", dat.name, ".", trait.name, ".physDist.0.95corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by=20e6, lines=phys.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=adt.dat.list95, bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=epi951.bed, epi.int.bed2=epi952.bed, epi.bed1=epi1.bed, epi.bed2=epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)
       # Genetic distance plots
       # 0.90 correlation
       genDist.plot.path="/Users/Dani/UCD/BILs/genDist.epi.plots/"
-      plot.path <- paste0(genDist.plot.path, "genDist.0.90corr/", dat.name, ".", trait.name, ".genDist.0.90corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list90, bin.bed=gen.bin.bed, bin.tkHt,
+      plot.path <- paste0(genDist.plot.path, "genDist.0.90corr/", dat.name, ".", trait.name, ".genDist.0.90corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, major.by=20, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list90, bin.bed=gen.bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=gen.epi901.bed, epi.int.bed2=gen.epi902.bed, epi.bed1=gen.epi1.bed, epi.bed2=gen.epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)      
       # 0.95 correlation
       genDist.plot.path="/Users/Dani/UCD/BILs/genDist.epi.plots/"
-      plot.path <- paste0(genDist.plot.path, "genDist.0.95corr/", dat.name, ".", trait.name, ".genDist.0.95corr.epiPlot", ".pdf")
-      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list95, bin.bed=gen.bin.bed, bin.tkHt,
+      plot.path <- paste0(genDist.plot.path, "genDist.0.95corr/", dat.name, ".", trait.name, ".genDist.0.95corr.epiPlot6", ".pdf")
+      circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init=gen.circ.init, init.tkHt, major.by=20, lines=gen.lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list=gen.adt.dat.list95, bin.bed=gen.bin.bed, bin.tkHt,
                 bin.col, epi.int.bed1=gen.epi951.bed, epi.int.bed2=gen.epi952.bed, epi.bed1=gen.epi1.bed, epi.bed2=gen.epi2.bed, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, adt.nz.coef)      
     }
   }
 }
 #-----------
 # Load epistatic QTL mapping results and plot
-load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
-plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2, 87, c(rep(1.5, 11), 6) )
+#load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/comp.epi.map.Rdata")
+plot.epi.map(comp.epi.map, bin.stats, gen.bin.stats, dat.name="comp", circ.init, gen.circ.init, 2, 87, c(rep(1.5, 11), 6), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/circ.epi.map.Rdata")
-plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
+plot.epi.map(circ.epi.map, bin.stats, gen.bin.stats, dat.name="circ", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/sym.epi.map.Rdata")
-plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
-load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
-plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
+plot.epi.map(sym.epi.map, bin.stats, gen.bin.stats, dat.name="sym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
+#load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/asym.epi.map.Rdata")
+plot.epi.map(asym.epi.map, bin.stats, gen.bin.stats, dat.name="asym", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7), reduced=F )
 load("/Users/Dani/UCD/BILs/final_epistatic_sparsenet_results/FT.epi.map.Rdata")
 plot.epi.map(FT.epi.map, bin.stats, gen.bin.stats, dat.name="FT", circ.init, gen.circ.init, 3, 86.5, c(rep(1.5, 11), 7) )
