@@ -377,6 +377,12 @@ plot.epi.map <- function(sl.map.dat, epi.map.dat, bin.stats, gen.bin.stats, dat.
         gen.epi952.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.int0.95.start2, end=gen.int0.95.end2, coefs=coefs) )
         gen.epi901.bed <- with(epi.nz.coef, data.frame(chr=chr1, start=gen.int0.90.start1, end=gen.int0.90.end1, coefs=coefs) )
         gen.epi902.bed <- with(epi.nz.coef, data.frame(chr=chr2, start=gen.int0.90.start2, end=gen.int0.90.end2, coefs=coefs) )
+        smidgen=1e-13 # very small number by which to extend color scale edges in order to circumvent occasional issue w/ rgb() whereby value to convert to color is outside of 0-1 range, when it should be == 1.
+        # create 3 new variables to use for color names so they don't have to be re-typed every time I change something
+        col.top = "green4"
+        col.mid = "gray92"
+        col.bottom = "magenta4"
+        transp = 0.5 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha. 0.75 was the old value, when the mid color was black
         # Epistatic chords' color functions and related
         if (min(epi.nz.coef$coefs) > 0 ) { # Set the color function depending on whether the QTL coefficient's range spans zero or not, and if not whether it's positive or negative
           col.fun1 = colorRamp2(breaks=c(min(epi.nz.coef$coefs)-smidgen, ((max(epi.nz.coef$coefs)-min(epi.nz.coef$coefs))/2)+min(epi.nz.coef$coefs), max(epi.nz.coef$coefs)+smidgen), colors=c(col.bottom, col.mid, col.top), transparency=transp )
@@ -421,22 +427,16 @@ plot.epi.map <- function(sl.map.dat, epi.map.dat, bin.stats, gen.bin.stats, dat.
       adt.tkHt = 0.17 # additive track height (in proportion of the circle's radius)
       cpad = 0.01 # cell padding on left and right
       bin.tkHt = 0.05 # BIN structure track height (in proportion of the circle's radius)
-      transp = 0.5 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha. 0.75 was the old value, when the mid color was black
       bkgd.col = "gray91" # gray95 works well too, but it's not very visible in some monitors for which gray90 is better
       init.cex = 1.35 # font size scalar for initializing the circos plot
-      #       major.by=20 # Major tick mark every 20 cM or 20 MB
       bin.col=alpha("black", 0.5) # color used for the BINs' rectangles, i.e. black w/ 50% trans
-      smidgen=1e-13 # very small number by which to extend color scale edges in order to circumvent occasional issue w/ rgb() whereby value to convert to color is outside of 0-1 range, when it should be == 1.
+      transp = 0.5 # transparency value used for the interval around the QTL peak; note: transparency = 1 - alpha. 0.75 was the old value, when the mid color was black
       if ( nrow(adt.nz.coef)==0 ) {   # Y-axis lines for additive QTL track are NULL is there are no additive QTL
         gen.lines <- NULL; phys.lines = NULL 
       } else {
         gen.lines <- cbind(gen.circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
         phys.lines <- cbind(circ.init, l1=rep(0, 12), l2=rep(max(adt.nz.coef$coefs)/2, 12), l3=rep(max(adt.nz.coef$coefs), 12) )
       }
-      # create 3 new variables to use for color names so they don't have to be re-typed every time I change something
-      col.top = "green4"
-      col.mid = "gray92"
-      col.bottom = "magenta4"
       # Individual circular plot function
       circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, circ.init, init.tkHt, major.by, lines, adt.tkHt, cpad, adt.ylim, bkgd.col, adt.list, bin.bed, bin.tkHt, bin.col,
                              epi.int.bed1, epi.int.bed2, epi.bed1, epi.bed2, col.vector1, col.vector2, legend.col.vector, text.col.vector1, text.col.vector2, epi.nz.coef, adt.nz.coef, sl.nz.coef, sl.lines, sl.list) {
