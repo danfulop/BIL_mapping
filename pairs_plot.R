@@ -2,6 +2,7 @@ library(GGally)
 library(ggplot2)
 library(gpairs)
 library(scales)
+library(stringr)
 
 setwd("/Users/Dani/UCD/BILs/model-fitted-means/")
 load("comp.list.Rdata")
@@ -40,6 +41,9 @@ jdat$circ.Area <- jdat$circ.Area / 10000
 jdat2 <- cbind(comp.means, circ.means[2:ncol(circ.means)], sym.means[2:5])
 jdat2$circ.Area <- jdat2$circ.Area / 10000
 
+colnames(circ.means)
+jdat3 <- cbind(circ.means, sym.means[2:5])
+
 ggpairs(data = na.omit(jdat), columns = 2:19, upper = list(continuous = "cor"), lower = list(continuous = "smooth", params = c(alpha = 0.25, color = "blue")), diag = list(continuous = "density"))
 ggpairs(data = na.omit(jdat), columns = 2:19, upper = list(continuous = "cor"), lower = list(continuous = "smooth", params = c(alpha = 0.25, color = "blue")), diag = list(continuous = "bar"))
 
@@ -58,6 +62,23 @@ dev.off()
 pdf(file="gpairs_circ.sym_7.5x7.5.pdf", width=7.5, height=7.5)
 gpairs(jdat2[6:14], upper.pars=list(scatter='corrgram'), lower.pars=list(scatter='loess'), outer.labels="all", scatter.pars=list(pch=16, col=alpha("black", 0.25)), diag.pars=list(fontsize=10) )
 dev.off()
+
+pdf(file="gpairs_circ.sym_7.5x7.5.pdf", width=7.5, height=7.5)
+gpairs(jdat2[6:14], upper.pars=list(scatter='corrgram'), lower.pars=list(scatter='loess'), outer.labels="all", scatter.pars=list(pch=16, col=alpha("black", 0.25)), diag.pars=list(fontsize=10) )
+dev.off()
+
+# Plot scatter plots of: PC3 and Aspect Ratio, and PC3 and Solidity
+colnames(jdat3)
+head(jdat3)
+AR_vs_symPC3 <- ggplot(data=jdat3, aes(x=circ.AR, y=sym.PC3)) + geom_point(alpha=0.5) + labs(x="Aspect Ratio", y="symmetric PC3")
+ggsave("AR_vs_symPC3.pdf", AR_vs_symPC3, width=7.5, height=7.5)
+AR_vs_symPC3_text <- ggplot(data=jdat3, aes(x=circ.AR, y=sym.PC3)) + geom_text(aes(label=substr(geno,5,7)), size=2.8) + labs(x="Aspect Ratio", y="symmetric PC3")
+ggsave("AR_vs_symPC3_text.pdf", AR_vs_symPC3_text, width=7.5, height=7.5)
+Solid_vs_symPC3 <- ggplot(data=jdat3, aes(x=circ.Solidity, y=sym.PC3)) + geom_point(alpha=0.5) + labs(x="Solidity", y="symmetric PC3")
+ggsave("Solidity_vs_symPC3.pdf", Solid_vs_symPC3, width=7.5, height=7.5)
+Solid_vs_symPC3_text <- ggplot(data=jdat3, aes(x=circ.Solidity, y=sym.PC3)) + geom_text(aes(label=substr(geno,5,7)), size=2.8) + labs(x="Solidity", y="symmetric PC3")
+ggsave("Solidity_vs_symPC3_text.pdf", Solid_vs_symPC3_text, width=7.5, height=7.5)
+
 
 #--------------
 # jdat$geno[which(is.na(jdat$FT.FT))] # PEN     BIL_157 BIL_498 BIL_321 BIL_525 BIL_416 BIL_294 BIL_327
