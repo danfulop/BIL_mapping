@@ -361,3 +361,10 @@ plot.fine.map <- function(il.qtl, bil.qtl, gen.bin.stats, il.bin.gen, gen.circ.i
 }
 
 plot.fine.map(il.qtl, bil.qtl, gen.bin.stats, il.bin.gen, gen.circ.init, n.dig=2, start.degree=86, gap.degree=c(rep(1.5, 11), 8) )
+
+#---------
+# ADD Flowering Time fine-mapping results
+
+
+
+
