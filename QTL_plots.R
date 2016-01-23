@@ -1,5 +1,5 @@
 # ...to install and reload the hacked version to label chromosomes' axes in cM if length < 1000
-# install.packages("/Users/Dani/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
+# install.packages("~/UCD/R/circlize_0.2.0.tar.gz", repos=NULL, type="source")
 library(stringr)
 library(plyr)
 library(ggplot2)

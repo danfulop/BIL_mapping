@@ -51,7 +51,7 @@ il.sig.rd <- lapply(il.sig.qtl, function(x) RangedData(IRanges(start=x$start, en
 il.sig.rd[[1]]
 
 # DO likewise with BIL QTL data to put into a RangedData list
-load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
+load("~/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
 dim(bin.stats)
 head(bin.stats)
 # bin.statsin.statsbin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
@@ -59,16 +59,18 @@ head(bin.stats)
 # bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
 
 # Load BIL QTL results
-load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/comp.map.Rdata")
+load("~/UCD/BILs/final_additive_sparsenet_results/comp.map.Rdata")
 # make a list of non.zero.coefs data.frames with 
 comp.bil.qtl <- lapply(comp.map, function(x) x$non.zero.coefs )
 names(comp.bil.qtl) <- paste0("comp.", names(comp.bil.qtl)) 
 rm(comp.map)
 
-load("/Users/Dani/UCD/BILs/final_additive_sparsenet_results/circ.map.Rdata")
-circ.bil.qtl <- lapply(circ.map[2:5], function(x) x$non.zero.coefs ) # exclude Area as it has not QTL
+load("~/UCD/BILs/final_additive_sparsenet_results/circ.map.Rdata")
+circ.bil.qtl <- lapply(circ.map[2:5], function(x) x$non.zero.coefs ) # exclude Area as it has no QTL
 names(circ.bil.qtl) <- paste0("circ.", names(circ.bil.qtl)) 
 rm(circ.map)
+
+load("~/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
 
 # check that the trait order matches between IL and BIL data, and reorder BIL data
 names(il.sig.rd)
@@ -125,7 +127,7 @@ library(scales)
 library(stringr)
 
 setwd("~/UCD/BILs/fine_mapping_n_eqtl_enrichment/")
-load("/Users/Dani/UCD/BILs/leaf_traits/gen.bin.stats.Rdata") # load gen.bin info
+load("~/UCD/BILs/leaf_traits/gen.bin.stats.Rdata") # load gen.bin info
 head(gen.bin.stats)
 
 # load("/Users/Dani/UCD/BILs/scam_fits.Rdata") # load monotonic spline smoothed regression conversion of bp to cM
@@ -353,7 +355,7 @@ plot.fine.map <- function(il.qtl, bil.qtl, gen.bin.stats, il.bin.gen, gen.circ.i
       dev.off()
       circos.clear()
     }
-    genDist.plot.path="/Users/Dani/UCD/BILs/fine_mapping_n_eqtl_enrichment/fine_mapping_plots/"
+    genDist.plot.path="~/UCD/BILs/fine_mapping_n_eqtl_enrichment/fine_mapping_plots/"
     plot.path <- paste0(genDist.plot.path, "/", dat.name, "_fine_mapping", ".pdf")
     circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, gen.circ.init, init.tkHt, major.by=20, il.lines, bil.lines, qtl.tkHt, cpad, il.ylim, bil.ylim, bkgd.col,
               bil.list, gen.bin.bed, il.gen.bed, bin.tkHt, bin.col, text.col.vector2, bil.dat, il.dat)
