@@ -6,7 +6,7 @@ library(foreach)
 
 setwd("~/UCD/BILs/fine_mapping_n_eqtl_enrichment/")
 files <- list.files(paste0(getwd(), "/05.bin.pvalues"))
-common.traits <- c(1:3,5,24:27) # traits in common btw. ILs and BILs
+common.traits <- c(1:3,5,14,24:27) # traits in common btw. ILs and BILs
 files <- files[common.traits] # subset by needed traits
 trait.names <- sapply(files, function(x) str_match(x, ".+\\.(.+)\\.txt")[1,2])
 
@@ -65,24 +65,27 @@ comp.bil.qtl <- lapply(comp.map, function(x) x$non.zero.coefs )
 names(comp.bil.qtl) <- paste0("comp.", names(comp.bil.qtl)) 
 rm(comp.map)
 
+load("~/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
+ft.bil.qtl <- lapply(FT.map, function(x) x$non.zero.coefs )
+rm(FT.map)
+
 load("~/UCD/BILs/final_additive_sparsenet_results/circ.map.Rdata")
 circ.bil.qtl <- lapply(circ.map[2:5], function(x) x$non.zero.coefs ) # exclude Area as it has no QTL
 names(circ.bil.qtl) <- paste0("circ.", names(circ.bil.qtl)) 
 rm(circ.map)
 
-load("~/UCD/BILs/final_additive_sparsenet_results/FT.map.Rdata")
-
-# check that the trait order matches between IL and BIL data, and reorder BIL data
-names(il.sig.rd)
-names(comp.bil.qtl)
-names(circ.bil.qtl)
-
 # reorder BIL data
 comp.bil.qtl <- comp.bil.qtl[c(4,2,1,3)]
 circ.bil.qtl <- circ.bil.qtl[c(2,1,3:4)]
 
+# check that the trait order matches between IL and BIL data, and reorder BIL data
+names(il.sig.rd)
+names(comp.bil.qtl)
+names(ft.bil.qtl)
+names(circ.bil.qtl)
+
 # join BIL datasets
-bil.qtl <- c(comp.bil.qtl, circ.bil.qtl)
+bil.qtl <- c(comp.bil.qtl, ft.bil.qtl, circ.bil.qtl)
 head(bil.qtl[[1]])
 
 # put into a list of RangedData objects
@@ -91,18 +94,18 @@ bil.rd[[1]]
 length(bil.rd)
 
 # find overlaps
-ovs <- lapply(1:8, function(i) {
+ovs <- lapply(1:9, function(i) {
   findOverlaps(query = bil.rd[[i]], subject = il.sig.rd[[i]])
 })
 names(ovs) <- names(bil.rd)
 
-overlappingBins <- lapply(1:8, function(i) {
+overlappingBins <- lapply(1:9, function(i) {
   cbind(il.sig.qtl[[i]][as.matrix(ovs[[i]])[,2], ], bil.qtl[[i]][as.matrix(ovs[[i]])[,1], ])
 })
 names(overlappingBins) <- names(bil.rd)
 
 # APPEND "il." and "bil." to appropriate columns to distinguish
-for (i in 1:8) {
+for (i in 1:9) {
   names(overlappingBins[[i]])[1:2] <- paste0("il.", names(overlappingBins[[i]])[1:2]) 
   names(overlappingBins[[i]])[11] <- paste0("bil.", names(overlappingBins[[i]])[11])
 }
@@ -111,7 +114,7 @@ setwd("../")
 save(overlappingBins, file="overlappingBins.Rdata")
 
 # Save overlappingBins' tables
-for (i in 1:8) {
+for (i in 1:9) {
   filename <- paste0(names(overlappingBins)[i], "_il.bil.overlappingBins.csv")
   write.csv(overlappingBins[[i]], file=filename, quote=F, row.names=F)
 }
@@ -130,67 +133,67 @@ setwd("~/UCD/BILs/fine_mapping_n_eqtl_enrichment/")
 load("~/UCD/BILs/leaf_traits/gen.bin.stats.Rdata") # load gen.bin info
 head(gen.bin.stats)
 
-# load("/Users/Dani/UCD/BILs/scam_fits.Rdata") # load monotonic spline smoothed regression conversion of bp to cM
+load("~/UCD/BILs/scam_fits.Rdata") # load monotonic spline smoothed regression conversion of bp to cM
 
-# load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
-# bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
-# num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wise function to trim factor columns of white space and convert them to numeric. Coercion to char isn't needed since trimming does that already
-# bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
+load("~/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
+bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
+num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wise function to trim factor columns of white space and convert them to numeric. Coercion to char isn't needed since trimming does that already
+bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
 
-# il.bin <- read.csv("bin2_coord.csv")
-# head(il.bin)
-# # make a chromosome column in the same style as in BIL's gen.bin.stats
-# il.bin$chr <- paste0("ch", str_pad(str_replace(as.character(il.bin$bin), "d\\.([0-9]+)[A-Z]", "\\1"), 2, pad="0"))
-# head(il.bin)
-# class(il.bin$chr)
-# 
-# # convert IL-bin phys. coordinates to genetic distance
-# chrom <- unique(il.bin$chr)
-# bin.predict <- vector('list', 12) # list of tables for storing the scam model genetic distance predictions
-# for (h in 1:length(chrom) ) {
-#   chrom.tab <- il.bin[il.bin$chr==chrom[h], ]
-#   # predict genetic distance 3 times with: bin.mid, bin.start, and bin.end
-#   bin.start <- data.frame(bin.start=chrom.tab$start)
-#   newdata <- data.frame(position_bp=bin.start$bin.start)
-#   bin.start$gen.bin.start <- predict(fits[[h]], newdata=newdata, type="response", newdata.guaranteed=TRUE)
-#   bin.end <- data.frame(bin.end=chrom.tab$end)
-#   newdata <- data.frame(position_bp=bin.end$bin.end)
-#   bin.end$gen.bin.end <- predict(fits[[h]], newdata=newdata, type="response", newdata.guaranteed=TRUE)
-#   bin.predict[[h]] <- cbind(bin.start, bin.end) # cbind 3 predictions
-#   bil.tab <- bin.stats[bin.stats$chr==chrom[h], ]
-#   bil.start <- data.frame(bin.start=bil.tab$bin.start)
-#   newdata <- data.frame(position_bp=bil.start$bin.start)
-#   bil.start$gen.bin.start <- predict(fits[[h]], newdata=newdata, type="response", newdata.guaranteed=TRUE)
-#   # *** zero it differently!!  =>  do so w.r.t. the BIL data so that they match!!
-#   # I need the unaltered cM prediction (based on BIL data) for the start of the chromosome
-#   zero.cM <- colwise(function(x, chr.start) x - (chr.start * chr.start/x ) ) # function to proportionally zero the predicted gen. dists.
-#   bin.predict[[h]][, c(2,4)] <- zero.cM(bin.predict[[h]][, c(2,4)], chr.start = bil.start$gen.bin.start[1]) # zero the cM predictions
-#   bil.zero <- bil.start$gen.bin.start[1] - (bil.start$gen.bin.start[1] * bil.start$gen.bin.start[1] / bil.start$gen.bin.start[1])
-#   if(bil.zero != 0) { # re-check zeroing of genDist b/c of numerical issues that sometimes result in a tiny negative or positive value !=0 as the start of the chromosome
-#     bin.predict[[h]][, c(2,4)] <- bin.predict[[h]][, c(2,4)] - bil.zero
-#   } else next
-# }
-# bin.predict <- do.call(rbind, bin.predict) # rbind bin.predict's 12 elements
-# 
-# il.bin.gen <- cbind(il.bin[, c(1:2,5)], bin.predict) # cbind il.bin' 1st 2 cols (i.e. bin & chr) & bin.predict
-# save(il.bin.gen, file="il.bin.gen.Rdata")
-# names(il.bin.gen)[c(4,6)]
-# head(il.bin.gen)
-# # check that the last BIL-bin boundary for each chromosome occurs downstream of the IL one
-# sapply(1:12, function(i) {
-#   tmp = chrom[i]
-#   bil.chr.end <- gen.bin.stats$gen.bin.end[gen.bin.stats$chr==tmp][length(gen.bin.stats$gen.bin.end[gen.bin.stats$chr==tmp])]
-#   il.chr.end <- il.bin.gen$gen.bin.end[il.bin.gen$chr==tmp][length(il.bin.gen$gen.bin.end[il.bin.gen$chr==tmp])]
-#   bil.chr.end > il.chr.end
-# }) # Yes, they do.
+il.bin <- read.csv("bin2_coord.csv")
+head(il.bin)
+# make a chromosome column in the same style as in BIL's gen.bin.stats
+il.bin$chr <- paste0("ch", str_pad(str_replace(as.character(il.bin$bin), "d\\.([0-9]+)[A-Z]", "\\1"), 2, pad="0"))
+head(il.bin)
+class(il.bin$chr)
 
-# # cbind genetic distance predictions to IL QTL data
-# il.qtl <- lapply(il.sig.qtl, function(x) merge(il.bin.gen[c(1:3,5,7)], x[c(2:4,6:10)], by="bin2", sort=F))
-# setwd("../")
-# save(il.qtl, file="il.qtl.Rdata")
-# bil.qtl
-# gen.bin.stats
-# save(bil.qtl, file="bil.qtl.Rdata")
+# convert IL-bin phys. coordinates to genetic distance
+chrom <- unique(il.bin$chr)
+bin.predict <- vector('list', 12) # list of tables for storing the scam model genetic distance predictions
+for (h in 1:length(chrom) ) {
+  chrom.tab <- il.bin[il.bin$chr==chrom[h], ]
+  # predict genetic distance 3 times with: bin.mid, bin.start, and bin.end
+  bin.start <- data.frame(bin.start=chrom.tab$start)
+  newdata <- data.frame(position_bp=bin.start$bin.start)
+  bin.start$gen.bin.start <- predict(fits[[h]], newdata=newdata, type="response", newdata.guaranteed=TRUE)
+  bin.end <- data.frame(bin.end=chrom.tab$end)
+  newdata <- data.frame(position_bp=bin.end$bin.end)
+  bin.end$gen.bin.end <- predict(fits[[h]], newdata=newdata, type="response", newdata.guaranteed=TRUE)
+  bin.predict[[h]] <- cbind(bin.start, bin.end) # cbind 3 predictions
+  bil.tab <- bin.stats[bin.stats$chr==chrom[h], ]
+  bil.start <- data.frame(bin.start=bil.tab$bin.start)
+  newdata <- data.frame(position_bp=bil.start$bin.start)
+  bil.start$gen.bin.start <- predict(fits[[h]], newdata=newdata, type="response", newdata.guaranteed=TRUE)
+  # *** zero it differently!!  =>  do so w.r.t. the BIL data so that they match!!
+  # I need the unaltered cM prediction (based on BIL data) for the start of the chromosome
+  zero.cM <- colwise(function(x, chr.start) x - (chr.start * chr.start/x ) ) # function to proportionally zero the predicted gen. dists.
+  bin.predict[[h]][, c(2,4)] <- zero.cM(bin.predict[[h]][, c(2,4)], chr.start = bil.start$gen.bin.start[1]) # zero the cM predictions
+  bil.zero <- bil.start$gen.bin.start[1] - (bil.start$gen.bin.start[1] * bil.start$gen.bin.start[1] / bil.start$gen.bin.start[1])
+  if(bil.zero != 0) { # re-check zeroing of genDist b/c of numerical issues that sometimes result in a tiny negative or positive value !=0 as the start of the chromosome
+    bin.predict[[h]][, c(2,4)] <- bin.predict[[h]][, c(2,4)] - bil.zero
+  } else next
+}
+bin.predict <- do.call(rbind, bin.predict) # rbind bin.predict's 12 elements
+
+il.bin.gen <- cbind(il.bin[, c(1:2,5)], bin.predict) # cbind il.bin' 1st 2 cols (i.e. bin & chr) & bin.predict
+save(il.bin.gen, file="il.bin.gen.Rdata")
+names(il.bin.gen)[c(4,6)]
+head(il.bin.gen)
+# check that the last BIL-bin boundary for each chromosome occurs downstream of the IL one
+sapply(1:12, function(i) {
+  tmp = chrom[i]
+  bil.chr.end <- gen.bin.stats$gen.bin.end[gen.bin.stats$chr==tmp][length(gen.bin.stats$gen.bin.end[gen.bin.stats$chr==tmp])]
+  il.chr.end <- il.bin.gen$gen.bin.end[il.bin.gen$chr==tmp][length(il.bin.gen$gen.bin.end[il.bin.gen$chr==tmp])]
+  bil.chr.end > il.chr.end
+}) # Yes, they do.
+
+# cbind genetic distance predictions to IL QTL data
+il.qtl <- lapply(il.sig.qtl, function(x) merge(il.bin.gen[c(1:3,5,7)], x[c(2:4,6:10)], by="bin2", sort=F))
+setwd("../")
+save(il.qtl, file="il.qtl.Rdata")
+bil.qtl
+gen.bin.stats
+save(bil.qtl, file="bil.qtl.Rdata")
 
 #-----------
 # Create gen.circ.init to initialize genetic distance plots
