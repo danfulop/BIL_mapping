@@ -68,7 +68,8 @@ fitMean <- function(x, y, labV, i, randform) {  # Include as input column index 
                              labels=c("non-significant", "q-value < 0.05", "q-value < 0.01", "q-value < 0.001", "M82") )
   swooshPlot <- ggplot(tab, aes(y=Estimate, x=geno, ymin=lowerStdDev, ymax=upperStdDev, color=Significance)) + 
     geom_linerange(aes(ymin=lowerCI, ymax=upperCI), alpha=0.5) + geom_pointrange() + theme_bw(16) + 
-    theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1)) + labs(x="Genotype", y=labV[i]) +
+    theme(axis.text.x = element_text(size=3.5, angle=50, vjust=1, hjust=1), legend.justification = c(0, 1), legend.position = c(0, 1)) + 
+    labs(x="Genotype", y=labV[i]) +
     scale_color_manual(values = c("#de77ae", "#8e0152", "#276419", "#7fbc41", "#4c4c4c") ) # custom color-blind friendly color palette
   ggsave(filename=paste0(names(x)[y], ".pdf"), swooshPlot, width=30, height=15) # use trait column labels to name the preliminary plots
   resultsList <- list(fittedMeans = tab, plot = swooshPlot)
@@ -76,7 +77,7 @@ fitMean <- function(x, y, labV, i, randform) {  # Include as input column index 
 }
 
 #----
-Complexity data
+# Complexity data
 # Initialize lists in which to save the ggplot objects and the data.frames with model-fitted means 
 comp.list <- vector("list", length=4)
 # Vector of Y-axis labels for complexity data => use this for function input "labV" or label vector

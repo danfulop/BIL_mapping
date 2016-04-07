@@ -176,7 +176,7 @@ for (h in 1:length(chrom) ) {
 bin.predict <- do.call(rbind, bin.predict) # rbind bin.predict's 12 elements
 
 il.bin.gen <- cbind(il.bin[, c(1:2,5)], bin.predict) # cbind il.bin' 1st 2 cols (i.e. bin & chr) & bin.predict
-save(il.bin.gen, file="il.bin.gen.Rdata")
+#save(il.bin.gen, file="il.bin.gen.Rdata")
 names(il.bin.gen)[c(4,6)]
 head(il.bin.gen)
 # check that the last BIL-bin boundary for each chromosome occurs downstream of the IL one
@@ -269,7 +269,8 @@ plot.fine.map <- function(il.qtl, bil.qtl, gen.bin.stats, il.bin.gen, gen.circ.i
     # Individual circular plot function
     circ.plot <- function (plot.path, init.cex, start.degree, bottom.margin, gap.degree, gen.circ.init, init.tkHt, major.by=20, il.lines, bil.lines, qtl.tkHt, cpad, il.ylim, bil.ylim, bkgd.col, 
                            bil.list, gen.bin.bed, il.gen.bed, bin.tkHt, bin.col, text.col.vector2, bil.dat, il.dat) {
-      pdf(file=plot.path, width=8, height=8)
+      #pdf(file=plot.path, width=8, height=8)
+      svg(file=plot.path, width=8, height=8)
       par(mar = c(1, 1, 1, 1), cex = init.cex ) # initialize plotting window and some plotting params; note: if margins aren't all equal then plot won't be circular
       circos.par("start.degree" = start.degree, "track.margin"=c(bottom.margin,0), "gap.degree"=gap.degree) # chromosome-01 is at top right, as opposed starting at 0 degrees i.e. below horizontal on the right
       circos.genomicInitialize(gen.circ.init, sector.width=gen.circ.init$end, track.height=init.tkHt, major.by=major.by ) # initialize circos plot w/ chromosomal axes
@@ -359,7 +360,8 @@ plot.fine.map <- function(il.qtl, bil.qtl, gen.bin.stats, il.bin.gen, gen.circ.i
       circos.clear()
     }
     genDist.plot.path="~/UCD/BILs/fine_mapping_n_eqtl_enrichment/fine_mapping_plots/"
-    plot.path <- paste0(genDist.plot.path, "/", dat.name, "_fine_mapping", ".pdf")
+    #plot.path <- paste0(genDist.plot.path, "/", dat.name, "_fine_mapping", ".pdf")
+    plot.path <- paste0(genDist.plot.path, "/", dat.name, "_fine_mapping", ".svg")
     circ.plot(plot.path, init.cex, start.degree, bottom.margin, gap.degree, gen.circ.init, init.tkHt, major.by=20, il.lines, bil.lines, qtl.tkHt, cpad, il.ylim, bil.ylim, bkgd.col,
               bil.list, gen.bin.bed, il.gen.bed, bin.tkHt, bin.col, text.col.vector2, bil.dat, il.dat)
   }

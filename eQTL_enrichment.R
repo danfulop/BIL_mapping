@@ -135,13 +135,13 @@ nrow(photoleaf.trans.eqtl) # 546 (down from 624)
 photoleaf.gene.cor.bin <- with(photoleaf.trans.eqtl, paste(itag, cor.bin, sep=":"))
 
 # Input BIL's bin info
-load("/Users/Dani/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
+load("~/UCD/BILs/leaf_traits/bin.stats.Rdata") # load bin information
 bin.stats$chr <- as.factor(substr(bin.stats$chr,7,10)) # Trim "SL2.40" from chromosome names
 num.trim.fx <- colwise(function(x) as.numeric(str_trim(x) ) ) # make a column-wise function to trim factor columns of white space and convert them to numeric. Coercion to char isn't needed since trimming does that already
 bin.stats[3:5] <- num.trim.fx(bin.stats[3:5] )
 
 # Load BIL bin correlation data to use during permutations
-load("/Users/Dani/UCD/BILs/leaf_traits/bin.cor.Rdata")
+load("~/UCD/BILs/leaf_traits/bin.cor.Rdata")
 dim(bin.cor) # 1049 1049
 
 # load epistatic mapping results and concatenate them
@@ -495,7 +495,7 @@ load("count_ovs.Rdata")
 length(which(count_ovs[,1] >= 2)) / 10000 # 0.0084
 length(which(count_ovs[,1] >= 4)) / 10000 # 0.0028
 length(which(count_ovs[,2] >= 6)) / 10000 # 0.0044
-length(which(count_ovs[,2] >= 15)) / 10000 # 0
+length(which(count_ovs[,2] >= 15)) / 10000 # 0, i.e. less the 1x10-4
 
 #----------
 # Check if distribution of number of genes among epiQTL bins differs significantly from that of all the bins
